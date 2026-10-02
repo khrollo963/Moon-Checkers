@@ -1,0 +1,2511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lunar Myth Draughts — Thoth vs. Khonsu</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Amiri&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#0b0a1f;--ink:#1a0f08;--gold:#f2c230;--lapis:#1f4fa8;
+  --sq-light:#ecd39a;--sq-dark:#7b3f22;
+  --px:"Press Start 2P",ui-monospace,"Courier New",monospace;
+  --ui:Tahoma,"Segoe UI",Verdana,sans-serif;
+  --tb:calc(30px + env(safe-area-inset-bottom,0px));
+  --sprT:none;--sprK:none;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0a1f}}
+:root[data-theme="dark"]{--bg:#0b0a1f}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;background:var(--bg);font-family:var(--ui);color:#000;overflow:hidden;-webkit-user-select:none;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit}
+canvas{image-rendering:pixelated;image-rendering:crisp-edges}
+
+/* ---------- desktop ---------- */
+#bg{position:fixed;left:0;top:0;width:100vw;height:100vh;background:var(--bg);z-index:0}
+.god{position:fixed;bottom:calc(var(--tb) + 2px);z-index:1;display:flex;flex-direction:column;align-items:center}
+.god.l{left:1.5vw}.god.r{right:1.5vw}
+.gbox{position:relative}
+.gbox canvas{display:block;filter:drop-shadow(0 4px 0 rgba(0,0,0,.35))}
+#cK{transform:scaleX(-1)}
+.plate{margin-top:6px;padding:5px 10px 6px;text-align:center;background:rgba(18,9,31,.82);border:2px solid var(--gold);box-shadow:0 0 0 2px #12306e,3px 3px 0 rgba(0,0,0,.4);color:#fff;font:8px/1.5 var(--px);white-space:nowrap}
+.plate b{display:block;color:var(--gold);font-weight:normal;letter-spacing:1px}
+.plate small{display:block;font-size:6px;color:#bcd0ff;margin-top:2px}
+.god.hide{display:none}
+.bubble{position:absolute;bottom:calc(100% + 10px);width:max-content;max-width:min(230px,42vw,var(--gap,999px));z-index:3;padding:8px 9px;background:#fff8dc;color:#1a0f08;border:3px solid var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.4);font:8px/1.6 var(--px);display:none;pointer-events:none}
+.god.l .bubble{left:0}.god.r .bubble{right:0}
+.bubble::after{content:"";position:absolute;top:100%;border:7px solid transparent;border-top-color:var(--ink)}
+.god.l .bubble::after{left:22px}.god.r .bubble::after{right:22px}
+.bubble.on{display:block;animation:pop .24s steps(3)}
+@keyframes pop{from{transform:translateY(8px);opacity:0}to{transform:none;opacity:1}}
+
+.stage{position:fixed;left:0;right:0;top:env(safe-area-inset-top,0px);bottom:var(--tb);z-index:2;overflow:auto;display:flex;padding:12px}
+.win{margin:auto;width:min(420px,100%);flex:none;background:#0055ea;padding:0 3px 3px;border-radius:9px 9px 0 0;box-shadow:0 0 0 1px #0a2a8a,4px 6px 0 rgba(0,0,0,.35),0 10px 30px rgba(0,0,0,.5)}
+.win.min{display:none}
+.titlebar{height:30px;margin:0 -3px;display:flex;align-items:center;gap:6px;padding:0 5px 0 8px;color:#fff;font:bold 13px "Trebuchet MS",Tahoma,sans-serif;text-shadow:1px 1px #0f1089;background:linear-gradient(180deg,#0997ff 0%,#0053ee 8%,#0050ee 40%,#06f 88%,#06f 93%,#005bff 95%,#003dd7 96%,#003dd7 100%);border-radius:9px 9px 0 0}
+.titlebar .ti{width:16px;height:16px;background:var(--sprT) center/100% 100%;image-rendering:pixelated;flex:none}
+.titlebar .tt{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tbtn{width:22px;height:22px;padding:0;border:1px solid #fff;border-radius:3px;color:#fff;font:bold 12px/1 Tahoma,sans-serif;cursor:pointer;background:radial-gradient(circle at 90% 90%,#0044d0 0%,#2a6cf5 55%,#3d8bff 100%);box-shadow:inset 0 0 1px 1px rgba(255,255,255,.25)}
+.tbtn:hover{filter:brightness(1.15)}
+.tbtn.x{background:radial-gradient(circle at 90% 90%,#c1381d 0%,#df5d3c 55%,#ec8c6d 100%)}
+.tbtn[disabled]{opacity:.55;cursor:default;filter:none}
+.wbody{background:#ece9d8}
+.menubar{display:flex;padding:1px 2px;font-size:12px;border-bottom:1px solid #d0cdbb;background:#ece9d8}
+.mi{padding:3px 9px;cursor:default}
+.mi:hover,.mi.open{background:#316ac5;color:#fff}
+
+
+.ayah{margin:10px 0 0;text-align:center;color:#7d7863;user-select:text}
+.ayah .iw{display:flex;flex-wrap:wrap;justify-content:center;gap:2px 14px;margin-bottom:4px}
+.ayah .w{display:flex;flex-direction:column;align-items:center}
+.ayah .ar{font:400 21px/1.5 Amiri,"Traditional Arabic","Scheherazade New","Noto Naskh Arabic",serif;color:#6a6552}
+.ayah .en{font:italic 10px/1.3 Georgia,"Times New Roman",serif;color:#8a8672}
+.ayah p{margin:0;font:italic 11px/1.5 Georgia,'Times New Roman',serif}
+.ayah p span{font-style:normal;font-size:9px;letter-spacing:.3px;margin-left:4px;color:#9a9580}
+/* tabs + support */
+.tabs{display:flex;padding:6px 8px 0;background:#ece9d8}
+.tab{position:relative;top:1px;padding:4px 16px;margin-right:2px;font-size:11px;color:#000;cursor:pointer;border:1px solid #919b9c;border-bottom:0;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#fff,#ecebe5)}
+.tab.on{background:#fcfcfe;border-top:2px solid #ffc83c;padding-bottom:6px;margin-top:-2px;z-index:1}
+.tab.ach-pulse{animation:tabPulse 1.4s ease-in-out 2}
+@keyframes tabPulse{0%,100%{box-shadow:0 0 0 rgba(242,194,48,0)}50%{box-shadow:0 0 0 4px rgba(242,194,48,.55)}}
+.client{padding:6px;border:1px solid #919b9c;margin:0 8px 8px;background:#fcfcfe}
+
+/* ---------- moon label, streak panel, achievements panel, toast (moved out of inline styles) ---------- */
+.moon-label{color:#bcd0ff;font-size:6px}
+.dim-hint{color:#bcd0ff}
+.streak-panel{font-size:8px;color:#f2c230;text-align:center;font-family:var(--px);padding:6px;background:#12163f;border:2px solid #7f9db9;margin-top:8px}
+.streak-stars{display:flex;gap:2px;margin-top:4px;justify-content:center}
+.streak-stars .star{width:6px;height:6px;background:#666;border:1px solid #7f9db9}
+.ach-wrap{padding:12px;font-family:Tahoma,sans-serif;font-size:11px;color:#1a0f08}
+.ach-heading{font-weight:bold;font-size:13px;margin-bottom:8px;font-family:var(--px)}
+.storage-warning{background:#fff3cd;border:1px solid #e6c565;color:#5c4a12;font-family:Tahoma,sans-serif;font-size:10px;line-height:1.4;padding:8px;margin-bottom:10px}
+.ach-card{background:#ece9d8;padding:10px;border:1px solid #7f9db9;margin-bottom:8px}
+.ach-card.ach-card-last{margin-bottom:0}
+.ach-title{font-weight:bold;color:#1a0f08}
+.ach-desc{color:#666;font-size:10px}
+.ach-track{margin-top:4px;height:8px;background:#ddd;border:1px solid #999;overflow:hidden}
+.ach-fill{height:100%;background:linear-gradient(90deg,#f2c230,#ffe27a);width:0%;transition:width .5s ease-out}
+.ach-card.ach-just-unlocked .ach-fill{animation:achFlash .6s ease-out}
+.ach-card.ach-just-unlocked{animation:achCardPop .4s ease-out}
+.ach-progress-label{margin-top:3px;font-size:9px;color:#8a8672;text-align:right}
+@keyframes achFlash{0%,100%{filter:brightness(1)}40%{filter:brightness(1.8)}}
+@keyframes achCardPop{0%{transform:scale(1)}30%{transform:scale(1.02)}100%{transform:scale(1)}}
+.ach-toast{position:fixed;top:20px;right:20px;left:20px;margin:0 auto;max-width:280px;background:#1a0f08;border:3px solid #f2c230;padding:14px;font-family:var(--px);font-size:13px;color:#f2c230;z-index:2000;box-shadow:0 0 24px rgba(242,194,48,.6);animation:slideIn .3s ease-out}
+@media (min-width:480px){.ach-toast{left:auto}}
+.ach-toast-title{font-weight:bold;margin-bottom:4px}
+.ach-toast-desc{color:#ccc;font-size:9px}
+.support h4{margin:12px 0 6px;font-size:12px;color:#0b3a9a;border-bottom:1px solid #d0cdbb;padding-bottom:3px}
+.support p{margin:0 0 8px;font-size:12px;line-height:1.55;user-select:text}
+.sp-head{display:flex;align-items:center;gap:10px;padding:8px;background:#12163f;border:2px solid #7f9db9;color:#f4eec0}
+.sp-head canvas{width:48px;height:80px;flex:none;filter:drop-shadow(0 2px 0 rgba(0,0,0,.4))}
+.sp-head b{display:block;font:10px/1.6 var(--px);color:var(--gold)}
+.sp-head span{font:8px/1.8 var(--px);color:#bcd0ff}
+.sp-links{display:flex;flex-direction:column;gap:6px}
+.sp-link{display:flex;align-items:center;gap:10px;padding:8px;color:#000;text-decoration:none;background:#fff;border:2px solid #7f9db9;font-size:12px}
+.sp-link:hover{border-color:#f2a300;background:#fff8dc}
+.sp-link:focus-visible{outline:2px solid #316ac5;outline-offset:2px}
+.sp-ic{width:30px;height:30px;flex:none;display:grid;place-items:center;color:#fff;font:bold 15px Georgia,serif;border:2px solid var(--ink);background:var(--lapis)}
+.sp-ic.yt{background:#c4302b}.sp-ic.ss{background:#ff6719}.sp-ic.az{background:#232f3e;color:#ffb300}.sp-ic.tiktok{background:#000}.sp-ic.ig{background:#e4405f}.sp-ic.gh{background:#1f2937}.sp-ic.pp{background:#0070ba}
+.sp-link b{display:block}.sp-link small{display:block;color:#555;font-size:11px}
+.sp-link .go{margin-left:auto;padding:3px 10px;border:1px solid #003c74;border-radius:3px;background:linear-gradient(180deg,#fff,#ecebe5 86%,#d8d0c4);font-size:11px}
+.sp-note{color:#555;font-size:11px!important}
+
+.hud{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:stretch;margin-bottom:8px}
+.pcard{display:flex;align-items:center;gap:8px;padding:5px 8px;background:#fff;border:2px solid #7f9db9;font-size:12px;min-width:0}
+.pcard>div{min-width:0}
+.pcard.k{flex-direction:row-reverse;text-align:right}
+.pcard.turn{border-color:#f2a300;box-shadow:0 0 0 1px #ffe27a,0 0 8px #f2a300}
+.pcard .av{width:30px;height:30px;flex:none;image-rendering:pixelated;background-size:100% 100%}
+.pcard.t .av{background-image:var(--sprT)}.pcard.k .av{background-image:var(--sprK)}
+.pcard b{display:block;font-size:13px}
+.pcard span{display:block;color:#444;font-size:11px;white-space:normal;line-height:1.25;overflow-wrap:break-word}
+.moonbox{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3px 10px;background:#12163f;border:2px solid #7f9db9;color:#f4eec0;font:7px/1.5 var(--px);text-align:center}
+.moonbox canvas{width:42px;height:42px;display:block;margin-bottom:3px}
+.moonbox.pulse canvas{animation:mpulse .4s steps(3)}
+@keyframes mpulse{50%{transform:scale(1.25)}}
+
+/* board */
+.frame{padding:8px;background:linear-gradient(135deg,#ffe27a,#f2c230 40%,#b8860b);box-shadow:inset 0 0 0 2px #7a4b00,inset 0 0 0 4px #ffe27a,inset 0 0 0 8px var(--lapis),inset 0 0 0 9px #7a4b00,3px 3px 0 rgba(0,0,0,.3)}
+.board{position:relative;width:100%;aspect-ratio:1;display:grid;grid-template:repeat(8,1fr)/repeat(8,1fr);border:2px solid var(--ink);cursor:pointer}
+.sq.l{background-color:var(--sq-light);background-image:linear-gradient(45deg,rgba(0,0,0,.08) 25%,transparent 25%,transparent 75%,rgba(0,0,0,.08) 75%),linear-gradient(45deg,rgba(0,0,0,.08) 25%,transparent 25%,transparent 75%,rgba(0,0,0,.08) 75%);background-size:8px 8px;background-position:0 0,4px 4px}
+.sq.d{background-color:var(--sq-dark);background-image:linear-gradient(45deg,rgba(0,0,0,.22) 25%,transparent 25%,transparent 75%,rgba(0,0,0,.22) 75%),linear-gradient(45deg,rgba(0,0,0,.22) 25%,transparent 25%,transparent 75%,rgba(0,0,0,.22) 75%);background-size:8px 8px;background-position:0 0,4px 4px}
+.layer{position:absolute;inset:0;pointer-events:none}
+.cellfx{position:absolute;width:var(--cw,12.5%);height:var(--cw,12.5%)}
+.cellfx.last{background:rgba(255,226,122,.3)}
+.cellfx.sel{background:rgba(255,226,122,.45);box-shadow:inset 0 0 0 3px var(--gold)}
+.cellfx.dest::after,.cellfx.cap::after{content:"";position:absolute;inset:36%;background:var(--gold);transform:rotate(45deg);box-shadow:0 0 0 2px var(--ink);animation:blink .8s steps(2) infinite}
+.cellfx.cap::after{background:#ff5a3c}
+@keyframes blink{50%{transform:rotate(45deg) scale(.7)}}
+.piece{position:absolute;width:var(--cw,12.5%);height:var(--cw,12.5%);transition:left .26s steps(5),top .26s steps(5),transform .32s steps(4),opacity .32s steps(4)}
+.snappy-motion .piece{transition:none}
+.piece i{position:absolute;left:8%;top:8%;width:84%;height:84%;background-size:100% 100%;image-rendering:pixelated}
+.piece.T i{background-image:var(--sprT)}.piece.K i{background-image:var(--sprK)}
+.piece .under{display:none;filter:brightness(.72)}
+.piece .body{filter:drop-shadow(0 2px 0 rgba(0,0,0,.4))}
+.piece.king .under{display:block;top:20%}
+.piece.king .body{top:0}
+.piece.sel .body{animation:hop .5s steps(2) infinite}
+@keyframes hop{50%{transform:translateY(-9%)}}
+.piece.must .body,.piece.must .under{animation:glint .7s steps(2) infinite}
+@keyframes glint{50%{filter:brightness(1.5) drop-shadow(0 0 3px #ff5a3c)}}
+.piece.dying{transform:scale(.1) rotate(120deg);opacity:0;z-index:3}
+.piece.crowned .body{animation:crown .6s steps(4) 1}
+@keyframes crown{50%{transform:translateY(-30%) scale(1.25)}}
+
+/* below board */
+.born{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;flex-wrap:wrap}
+.noprog-panel{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:8px;padding:5px 8px;background:#fff;border:1px solid #919b9c;font-size:11px;color:#444}
+.noprog-panel b{color:#000}
+.noprog-panel.warn{color:#a33;border-color:#c66}
+.noprog-panel.warn b{color:#a33}
+.movelog{margin-top:8px;background:#fff;border:1px solid #919b9c;padding:6px 8px;max-height:110px;overflow-y:auto;font:11px/1.5 var(--ui)}
+.movelog-empty{color:#888;font-style:italic}
+.movelog-row{display:flex;gap:6px;white-space:nowrap}
+.movelog-num{color:#888;flex:none;width:22px}
+.movelog-side{flex:none;font-weight:bold;width:14px}
+.movelog-side.t{color:#1f4fa8}
+.movelog-side.k{color:#7a1f1f}
+.movelog-note{color:#000;font-family:ui-monospace,"Courier New",monospace}
+.movelog-cap{color:#a33;font-weight:bold}
+.born .slots{display:flex;gap:4px}
+.slot{width:24px;height:24px;display:grid;place-items:center;font:8px var(--px);color:#8a8a8a;background:#d4d0c8;border:2px solid #808080;border-color:#808080 #fff #fff #808080}
+.slot.on{color:var(--ink);background:var(--gold);border-color:#fff #7a4b00 #7a4b00 #fff}
+.btns{display:flex;gap:6px;margin-top:8px;justify-content:flex-end;flex-wrap:wrap}
+.xpbtn{min-width:75px;height:23px;padding:0 12px;font-size:11px;color:#000;cursor:pointer;background:linear-gradient(180deg,#fff 0%,#ecebe5 86%,#d8d0c4 100%);border:1px solid #003c74;border-radius:3px}
+.xpbtn:hover{box-shadow:inset 0 -2px 0 #f8b636,inset 0 2px 0 #ffd77a}
+.xpbtn:active{background:#e0ddd0}
+.xpbtn.def{box-shadow:inset 0 0 0 2px #7aa4f3}
+.statusbar{display:flex;gap:2px;padding:2px;font-size:11px;background:#ece9d8;border-top:1px solid #d0cdbb}
+.statusbar div{padding:3px 6px;border:1px solid;border-color:#a8a596 #fff #fff #a8a596;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#status{flex:1}
+
+/* menus + dialogs */
+#layer{position:fixed;inset:0;z-index:1100;pointer-events:none}
+#layer>*{pointer-events:auto}
+.dd{position:fixed;min-width:190px;padding:2px;background:#fff;border:1px solid #808080;box-shadow:3px 3px 3px rgba(0,0,0,.4);font-size:12px}
+.dd div{padding:4px 22px 4px 24px;position:relative;cursor:default;white-space:nowrap}
+.dd div:hover{background:#316ac5;color:#fff}
+.dd div.chk::before{content:"✓";position:absolute;left:8px}
+.dd div.rad::before{content:"●";position:absolute;left:8px;font-size:8px;top:6px}
+.dd hr{border:0;border-top:1px solid #d0cdbb;margin:3px 2px}
+.modal{position:fixed;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.28);padding:12px}
+.dlg{width:min(400px,100%);max-height:100%;display:flex;flex-direction:column;background:#0055ea;padding:0 3px 3px;border-radius:9px 9px 0 0;box-shadow:4px 6px 0 rgba(0,0,0,.4)}
+.dlg .titlebar{border-radius:9px 9px 0 0}
+.dlg .dbody{background:#ece9d8;padding:14px;display:flex;gap:12px;overflow:auto;font-size:12px;line-height:1.5;user-select:text}
+.dlg .dbody p{margin:0 0 8px}
+.dlg .dbody ul{margin:0 0 8px;padding-left:18px}
+.dlg .dbody h4{margin:6px 0 4px;font-size:12px;color:#0b3a9a}
+.dlg .dicon{flex:none;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#fff;font:bold 20px Georgia,serif;background:radial-gradient(circle at 35% 30%,#7fb0ff,#1a4fc9);border:2px solid #fff;box-shadow:0 0 0 1px #0a2a8a}
+.dlg .dicon.gold{background:radial-gradient(circle at 35% 30%,#ffe27a,#b8860b);color:var(--ink);font-size:22px}
+.dlg .dicon.q{background:radial-gradient(circle at 35% 30%,#ffe27a,#d99a00);color:#5a3a00}
+.board-swatches{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.board-swatch{display:flex;align-items:center;gap:10px;padding:7px 10px;border:2px solid #7f9db9;background:#fff;cursor:pointer;font:12px var(--ui);text-align:left;border-radius:4px;color:#000}
+.board-swatch:hover{border-color:#f2a300}
+.board-swatch.active{border-color:#f2a300;background:#fff8dc;box-shadow:0 0 0 1px #ffe27a}
+.board-swatch-preview{width:26px;height:26px;flex:none;border:1px solid rgba(0,0,0,.4);border-radius:2px}
+.board-swatch-name{flex:1}
+.board-swatch-check{flex:none;color:#c8860b;font-weight:bold;visibility:hidden}
+.board-swatch.active .board-swatch-check{visibility:visible}
+.dlg .dfoot{background:#ece9d8;padding:0 14px 12px;display:flex;justify-content:flex-end;gap:6px;flex-wrap:wrap}
+.dtxt{flex:1;min-width:0}
+
+/* taskbar + start */
+.taskbar{position:fixed;left:0;right:0;bottom:0;height:var(--tb);padding-bottom:env(safe-area-inset-bottom,0px);z-index:100;display:flex;align-items:stretch;background:linear-gradient(180deg,#245edb 0%,#3f8cf3 9%,#245edb 18%,#245edb 92%,#1941a5 100%);border-top:1px solid #4b8cf0}
+.start{border:0;padding:0 18px 0 10px;display:flex;align-items:center;gap:6px;color:#fff;font:italic bold 17px "Trebuchet MS",Tahoma,sans-serif;text-shadow:1px 1px 2px rgba(0,0,0,.6);cursor:pointer;border-radius:0 12px 12px 0;background:linear-gradient(180deg,#5fbd5f 0%,#3f9f3f 14%,#37933b 50%,#2f8534 88%,#2a7a2e 100%);box-shadow:inset -1px 0 2px rgba(0,0,0,.4),inset 0 1px 1px rgba(255,255,255,.4)}
+.start:hover{filter:brightness(1.1)}
+.start .sf{width:20px;height:20px;border-radius:50%;background:#fff3;display:grid;place-items:center;font:normal 15px Georgia,serif;font-style:normal;text-shadow:none}
+.tasks{display:flex;align-items:center;padding:0 6px;flex:1;min-width:0}
+.task{display:flex;align-items:center;gap:6px;height:24px;width:100%;max-width:190px;padding:0 8px;color:#fff;font-size:11px;cursor:pointer;border:1px solid #1a3fa0;border-radius:3px;background:linear-gradient(180deg,#5a95f5,#3c81f3 50%,#2a6ae0);text-align:left;white-space:nowrap;overflow:hidden}
+.task i{width:14px;height:14px;flex:none;background:var(--sprT) center/100% 100%;image-rendering:pixelated}
+.task.active{background:#1e52b7;box-shadow:inset 1px 1px 3px rgba(0,0,0,.5)}
+.tray{display:flex;align-items:center;gap:10px;padding:0 12px;color:#fff;font-size:11px;border-left:1px solid #1042af;background:linear-gradient(180deg,#0c59b9 1%,#139ee9 6%,#18b5f2 10%,#139beb 14%,#1290e8 19%,#0d8dea 63%,#0d9ff1 81%,#0f9eed 88%,#119be9 91%,#1392e2 94%,#137ed7 97%,#095bc9 100%)}
+.tray .snd{cursor:pointer}
+.tray .snd.off{opacity:.45;text-decoration:line-through}
+.startmenu{position:fixed;left:0;bottom:var(--tb);width:min(300px,100%);z-index:200;display:none;border:1px solid #0a2a8a;border-radius:8px 8px 0 0;overflow:hidden;box-shadow:3px 3px 8px rgba(0,0,0,.5);font-size:12px}
+.startmenu.on{display:block}
+.smhead{display:flex;align-items:center;gap:10px;padding:8px 10px;color:#fff;font:bold 15px "Trebuchet MS",Tahoma,sans-serif;text-shadow:1px 1px 2px rgba(0,0,0,.6);background:linear-gradient(180deg,#1868ce 0%,#0e60cb 12%,#0e60cb 20%,#1164cf 32%,#1667cf 33%,#1b6cd3 47%,#1e70d9 54%,#2476dc 60%,#297ae0 65%,#3482e3 77%,#3786e5 79%,#428fe9 90%,#4793ff 100%)}
+.smhead .av{width:34px;height:34px;border:2px solid #fff;border-radius:4px;background:var(--sprT) center/100% 100%,#1f4fa8;image-rendering:pixelated}
+.smbody{background:#fff;padding:4px 0}
+.smbody div{padding:8px 14px;cursor:default;display:flex;gap:10px;align-items:center}
+.smbody div:hover{background:#316ac5;color:#fff}
+.smbody div em{font-style:normal;width:16px;text-align:center;font-family:Georgia,serif}
+.smfoot{display:flex;justify-content:flex-end;padding:5px 8px;background:linear-gradient(180deg,#4282d6,#3168c9)}
+.smfoot div{color:#fff;padding:3px 8px;cursor:default;border-radius:3px}
+.smfoot div:hover{background:#ffffff33}
+#off{position:fixed;inset:0;z-index:500;background:#000;color:#f2c230;display:none;place-items:center;text-align:center;font:10px/2.2 var(--px);padding:24px;cursor:pointer}
+#off.on{display:grid}
+
+@media (max-width:980px){.win{margin-top:4px}.stage{padding:8px}}
+@media (orientation:landscape) and (max-height:500px){
+  /* Two-column phone-landscape layout: board on the left sized by viewport
+     height, HUD + info stacked compactly on the right. --fw is the board
+     frame's width (= its height), i.e. whatever height is left after the
+     window chrome and taskbar. */
+  :root{--fw:max(120px,calc(100vh - var(--tb) - 78px))}
+  .stage{padding:4px}
+  .win{width:min(96vw,calc(var(--fw) + 276px));margin-top:2px}
+  .titlebar{height:24px}
+  .menubar{padding:0 2px}
+  .tabs{padding:3px 8px 0}
+  .tab{padding:2px 12px}
+  .statusbar{display:none}
+  #gamePanel:not([hidden]){display:grid;grid-template-columns:var(--fw) minmax(0,1fr);grid-template-rows:auto auto auto auto 1fr auto;column-gap:8px;row-gap:4px;align-items:start}
+  #gamePanel .frame{grid-column:1;grid-row:1 / 7;padding:6px}
+  #gamePanel .hud{grid-column:2;grid-row:1;grid-template-columns:1fr 1fr;gap:4px;margin:0}
+  #gamePanel .streak-panel{grid-column:2;grid-row:2;margin:0;padding:3px;font-size:8px}
+  #gamePanel .streak-stars{display:none}
+  #gamePanel .born{grid-column:2;grid-row:3;margin:0;gap:4px;font-size:10px}
+  #gamePanel .noprog-panel{grid-column:2;grid-row:4;margin:0;padding:3px 6px;font-size:10px}
+  #gamePanel .btns{grid-column:2;grid-row:6;margin:0;align-self:end}
+  #gamePanel .btns .xpbtn{min-width:64px;padding:0 8px;height:20px}
+  #gamePanel .movelog,#gamePanel .ayah{display:none}
+  #cardT{grid-column:1;grid-row:1}
+  #cardK{grid-column:2;grid-row:1}
+  .hud .moonbox{grid-column:1 / -1;grid-row:2;flex-direction:row;gap:8px;padding:2px 6px}
+  .hud .moonbox canvas{width:22px;height:22px;margin:0}
+  .hud .moonbox>div:not(.moon-label){display:none}
+  .pcard{padding:3px 5px;gap:5px}
+  .pcard .av{width:22px;height:22px}
+  .pcard b{font-size:11px}
+  .pcard span{font-size:9px}
+  .slot{width:20px;height:20px;font-size:7px}
+}
+@supports (height:100dvh){
+  @media (orientation:landscape) and (max-height:500px){
+    :root{--fw:max(120px,calc(100dvh - var(--tb) - 78px))}
+  }
+}
+@media (max-width:420px){.frame{padding:8px}.pcard{padding:4px 6px;gap:5px}.pcard .av{width:24px;height:24px}.pcard b{font-size:11px}.pcard span{font-size:9px}.moonbox{padding:3px 6px}.btns .xpbtn{min-width:64px;padding:0 8px}}
+@media (prefers-reduced-motion:reduce){
+  .piece{transition:left .08s linear,top .08s linear,opacity .08s linear}
+  .bubble.on{animation:none}
+  .piece.sel .body,.cellfx.dest::after,.cellfx.cap::after{animation:none}
+  .piece.must .body,.piece.must .under{animation:none;filter:brightness(1.4) drop-shadow(0 0 2px #ff5a3c)}
+}
+
+/* ---------- start menu ---------- */
+.startmenu-overlay{position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(11,10,31,.95);z-index:999;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(2px);overflow-y:auto}
+.startmenu-overlay.show{display:flex}
+.startmenu-container{background:linear-gradient(180deg,#0997ff 0%,#0053ee 8%,#0050ee 40%,#06f 88%,#06f 93%,#005bff 95%,#003dd7 100%);border:4px solid #003dd7;border-radius:12px;padding:0;box-shadow:0 0 0 2px #0a2a8a,8px 12px 0 rgba(0,0,0,.5),0 20px 60px rgba(0,0,0,.7);max-width:480px;width:100%;overflow:hidden}
+.startmenu-titlebar{height:30px;display:flex;align-items:center;gap:6px;padding:0 8px;color:#fff;font:bold 13px "Trebuchet MS",Tahoma,sans-serif;text-shadow:1px 1px #0f1089;background:linear-gradient(180deg,#0997ff 0%,#0053ee 8%,#0050ee 40%,#06f 88%,#06f 93%,#005bff 95%,#003dd7 100%);border-bottom:2px solid #0a2a8a}
+.startmenu-content{background:#ece9d8;padding:24px;display:flex;flex-direction:column;align-items:center;gap:20px}
+.startmenu-icon{width:64px;height:100px;margin-bottom:8px;filter:drop-shadow(0 2px 0 rgba(0,0,0,.3))}
+.startmenu-title{font:bold 16px var(--px);color:#1a0f08;text-align:center;letter-spacing:1px}
+.startmenu-subtitle{font:10px var(--px);color:#6a6552;text-align:center;line-height:1.4}
+.startmenu-myth{font-size:9px;color:#7a755f;text-align:center;line-height:1.5;margin-top:10px;max-width:300px;font-family:var(--ui)}
+.startmenu-myth p{margin:0 0 6px}
+.startmenu-buttons{display:flex;flex-direction:column;gap:12px;width:100%;max-width:320px}
+.startmenu-btn{padding:12px 16px;border:2px solid #7f9db9;background:linear-gradient(180deg,#fff,#ecebe5 86%,#d8d0c4);color:#000;font:bold 11px var(--px);cursor:pointer;border-radius:4px;text-align:center;transition:all .15s;text-shadow:1px 1px rgba(255,255,255,.8)}
+.startmenu-btn:hover{background:linear-gradient(180deg,#fff8dc,#f5f0e0 86%,#e8dcc8);border-color:#f2a300;box-shadow:0 0 0 1px #ffe27a}
+.startmenu-btn.selected{background:#ece9d8;border:3px solid #f2a300;box-shadow:0 0 0 2px #ffe27a;padding:11px 15px}
+
+
+
+/* ---------- title screen ---------- */
+.title-screen{position:fixed;left:0;top:0;width:100%;height:100%;background:linear-gradient(135deg,#0b0a1f 0%,#1a0f2e 50%,#0b0a1f 100%);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:20px;text-align:center;font-family:var(--px)}
+.title-screen.hide{display:none}
+.title-sun{width:120px;height:120px;background:radial-gradient(circle at 30% 30%,#ffeb3b,#ffc107,#ff9800);border-radius:50%;margin-bottom:20px;box-shadow:0 0 40px #ff9800,0 0 80px rgba(255,152,0,.5);animation:pulse-sun 3s ease-in-out infinite}
+@keyframes pulse-sun{0%,100%{transform:scale(1);box-shadow:0 0 40px #ff9800,0 0 80px rgba(255,152,0,.5)}50%{transform:scale(1.05);box-shadow:0 0 60px #ff9800,0 0 120px rgba(255,152,0,.7)}}
+.title-main{font-size:48px;color:#f2c230;text-shadow:3px 3px 0 #0a2a8a,6px 6px 0 rgba(0,0,0,.7);letter-spacing:3px;margin:20px 0 10px;line-height:1.2;max-width:600px}
+.title-sub{font-size:20px;color:#1a0f08;background:#f2c230;padding:8px 16px;display:inline-block;letter-spacing:2px;text-shadow:1px 1px 0 rgba(255,255,255,.5);margin-bottom:20px}
+.title-myth{font-size:11px;color:#ccc;line-height:1.6;max-width:400px;margin:20px 0;font-family:Tahoma,sans-serif;font-style:italic}
+.title-btn{padding:12px 32px;background:linear-gradient(180deg,#f2c230,#d4a621);color:#1a0f08;border:3px solid #7a4b00;font-family:var(--px);font-size:12px;font-weight:bold;cursor:pointer;border-radius:4px;transition:all .2s;text-shadow:1px 1px rgba(255,255,255,.8);box-shadow:0 4px 0 #7a4b00}
+.title-btn:hover{background:linear-gradient(180deg,#ffdb58,#f2c230);transform:translateY(-2px);box-shadow:0 6px 0 #7a4b00}
+.title-btn:active{transform:translateY(2px);box-shadow:0 2px 0 #7a4b00}
+.title-theme-prompt{font-size:12px;color:#bcd0ff;letter-spacing:2px;margin-top:6px}
+.title-theme-row{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.theme-pick-btn{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:130px}
+.theme-pick-label{font-size:12px}
+.theme-pick-sub{font-size:8px;font-weight:normal;color:#5a4008;text-shadow:none}
+
+
+/* ---------- achievements ---------- */
+@keyframes slideIn{
+  from{transform:translateX(300px);opacity:0}
+  to{transform:translateX(0);opacity:1}
+}
+
+.startmenu-play{margin-top:8px;background:linear-gradient(180deg,#f2c230,#d4a621);border-color:#7a4b00 !important;color:#1a0f08;font-weight:bold}
+.startmenu-play:hover{background:linear-gradient(180deg,#ffdb58,#f2c230);box-shadow:0 0 0 2px #ffe27a,0 0 8px #f2a300}
+.startmenu-play[disabled]{opacity:.5;cursor:default;background:linear-gradient(180deg,#ccc,#bbb)}
+/* Safe centering + no flex-crushing on the title and difficulty screens: children keep their
+   size, content that's too tall scrolls instead of being squashed or clipped (all orientations). */
+.title-screen{overflow-y:auto;justify-content:flex-start}
+.title-screen>*{flex:none}
+.title-screen>.title-sun{margin-top:auto}
+.title-screen>.title-theme-row{margin-bottom:auto}
+.startmenu-overlay{justify-content:flex-start}
+.startmenu-container{margin:auto;flex:none}
+.startmenu-content>*{flex:none}
+@media (orientation:landscape) and (max-height:500px){
+  .title-screen{gap:6px;padding:8px}
+  .title-sun{width:44px;height:44px;margin-bottom:0}
+  .title-main{font-size:24px;margin:0;line-height:1.15}
+  .title-theme-prompt{margin-top:0}
+  .theme-pick-btn{padding:7px 16px}
+  .startmenu-overlay{padding:6px}
+  .startmenu-container{max-width:660px}
+  .startmenu-content{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:16px;row-gap:4px;padding:8px 14px;align-items:center;justify-items:center}
+  .startmenu-icon{grid-column:1;grid-row:1 / span 4;width:40px;height:64px;margin:0}
+  .startmenu-title{grid-column:2;grid-row:1;font-size:12px}
+  .startmenu-subtitle{grid-column:2;grid-row:2;font-size:8px}
+  .startmenu-buttons{grid-column:2;grid-row:3;gap:5px;max-width:none;width:100%}
+  .startmenu-btn{padding:6px 12px;font-size:10px}
+  .startmenu-myth{grid-column:2;grid-row:4;font-size:7px;margin:2px 0 0;max-width:none}
+  .startmenu-myth p{margin:0}
+  /* speech bubble overlays the lower-middle of the portrait instead of needing headroom above it */
+  .bubble{bottom:30%}
+}
+
+/* ---------- Mysteries of the Sphinx (Phase 3a) ---------- */
+.mys{background:#fcfcfe}
+.mys-head{padding:8px;background:#12163f;border:2px solid #7f9db9;color:#f4eec0;text-align:center}
+.mys-head b{display:block;font:9px/1.6 var(--px);color:#f2c230;letter-spacing:1px}
+.mys-head small{display:block;font:11px var(--ui);color:#bcd0ff;margin-top:2px}
+.mys-sels{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin:8px 0}
+.mys-sel{display:flex;flex-direction:column;align-items:center;gap:1px;padding:5px 2px;font:11px var(--ui);color:#000;cursor:pointer;background:linear-gradient(180deg,#fff,#ecebe5 86%,#d8d0c4);border:2px solid #7f9db9;border-radius:3px;min-width:0}
+.mys-sel b{font-size:10px}.mys-sel small{font-size:8px;color:#6a6552}
+.mys-sel.locked{opacity:.55}
+.mys-sel.solved{border-color:#3f9f3f;background:#eaf6e6}
+.mys-sel.on{border-color:#f2a300;box-shadow:0 0 0 1px #ffe27a;background:#fff8dc}
+.mys-card{padding:10px;background:#ece9d8;border:1px solid #7f9db9}
+.mys-title{font:9px/1.6 var(--px);color:#1a0f08;text-align:center;margin-bottom:6px}
+.mys-riddle{margin:0 0 8px;padding:8px 10px;background:#fff8dc;border-left:4px solid #f2c230;font:italic 12px/1.55 Georgia,serif;color:#1a0f08}
+.mys-riddle p{margin:0}
+.mys-q{font:bold 11px var(--ui);text-align:center;color:#1a0f08;margin:6px 0}
+.mys-blanks{display:flex;justify-content:center;gap:5px;margin:8px 0;flex-wrap:wrap}
+.mys-blank{width:30px;height:36px;display:grid;place-items:center;font:bold 18px Georgia,serif;color:#1a0f08;background:#fff;border:2px solid #7f9db9;border-bottom-width:4px}
+.mys-blank.on{background:#ffe27a;border-color:#b8860b}
+.mys-blank.cur{border-color:#f2a300;box-shadow:0 0 0 2px #ffe27a;animation:mysblink 1s steps(2) infinite}
+@keyframes mysblink{50%{box-shadow:0 0 0 2px transparent}}
+@media (prefers-reduced-motion:reduce){.mys-blank.cur{animation:none}}
+.mys-kb{display:flex;flex-direction:column;align-items:center;gap:4px;margin-top:8px}
+.mys-row{display:flex;gap:3px;justify-content:center}
+.mys-key{width:28px;height:32px;padding:0;font:bold 13px var(--ui);color:#000;cursor:pointer;background:linear-gradient(180deg,#fff,#ecebe5 86%,#d8d0c4);border:1px solid #003c74;border-radius:3px}
+.mys-key:active{background:#e0ddd0}
+.mys-key.hit{background:#ffe27a;border-color:#7a4b00;color:#1a0f08}
+.mys-key.miss{background:#c9c6b8;color:#8a8672;border-color:#a9a595;text-decoration:line-through}
+.mys-key[disabled]{cursor:default}
+.mys-key[disabled]:not(.miss){opacity:.45}
+.mys-note{margin-top:6px;font-size:10px;color:#6a6552;text-align:center}
+.mys-win{margin-top:8px;padding:8px;text-align:center;font-size:11px;line-height:1.5;color:#1a0f08;background:#eaf6e6;border:2px solid #3f9f3f}
+.mys-win b{display:block;font:9px/1.6 var(--px);color:#2a7a2e}
+.mys-lock{padding:18px 10px;text-align:center;font-size:12px;line-height:1.6;color:#555}
+.mys-lock i{display:block;font-size:26px;font-style:normal;margin-bottom:6px}
+.mys-reset{margin-top:6px;display:flex;justify-content:center}
+.mys-strikes{display:flex;align-items:center;justify-content:center;gap:5px;margin:2px 0 6px;font:10px var(--ui);color:#6a6552}
+.mys-strikes .pip{width:11px;height:11px;border-radius:50%;background:#fff;border:2px solid #7f9db9}
+.mys-strikes .pip.on{background:#d6342a;border-color:#7a1410}
+.mys-cool{margin:6px 0;padding:8px;text-align:center;font-size:12px;color:#1a0f08;background:#f6dede;border:2px solid #b0342a}
+.mys-cool b{display:block;font:9px/1.6 var(--px);color:#8a1f16}
+.mys-cool span{display:inline-block;margin-top:2px;font:bold 18px/1.2 var(--ui);font-variant-numeric:tabular-nums}
+@media (max-width:360px){.tab{padding:4px 9px}.mys-key{width:25px}}
+
+.startmenu-btn.dlc-btn{background:linear-gradient(180deg,#2a2f6b,#12163f);color:#f2c230;border-color:#f2c230;text-shadow:none}
+.startmenu-btn.dlc-btn:hover{background:linear-gradient(180deg,#3a4090,#1c2260);box-shadow:0 0 0 1px #f2c230}
+.dlc-list{display:flex;flex-direction:column;gap:6px;margin:8px 0}
+.dlc-opt{display:flex;align-items:center;gap:8px;padding:7px 9px;text-align:left;font:11px var(--ui);color:#000;cursor:pointer;background:linear-gradient(180deg,#fff,#ecebe5 86%,#d8d0c4);border:2px solid #7f9db9;border-radius:3px}
+.dlc-opt .gl{font-size:20px;width:26px;text-align:center}
+.dlc-opt b{display:block;font:9px/1.5 var(--px)}
+.dlc-opt small{display:block;color:#6a6552;font-size:10px}
+.dlc-opt.locked{opacity:.6;cursor:not-allowed}
+.dlc-opt.open{border-color:#3f9f3f;background:#eaf6e6}
+.dlc-note{min-height:28px;font-size:11px;line-height:1.5;color:#1a0f08;text-align:center}
+
+/* ---------- The Sphinx (speaks the Mysteries) ---------- */
+.mys-stage{display:flex;align-items:flex-end;gap:14px;margin:8px 0;padding:10px 10px 0;background:linear-gradient(180deg,#f9dc94 0%,#f0bd60 62%,#d99a42 62%,#c98a3a 100%);border:2px solid #7f9db9;overflow:hidden}
+.mys-sph{flex:none;display:flex;flex-direction:column;align-items:center}
+.mys-sph canvas{width:128px;height:120px;image-rendering:pixelated;display:block}
+.mys-sph.talk canvas{animation:sphbob .5s steps(2) infinite}
+@keyframes sphbob{50%{transform:translateY(-2px)}}
+.mys-plate{margin-top:-2px;padding:3px 8px;font:7px/1.4 var(--px);color:#f2c230;background:#12163f;border:2px solid #f2c230;white-space:nowrap}
+.mys-bub{position:relative;flex:1;min-width:0;align-self:center;margin-bottom:22px;min-height:92px;padding:9px 11px;background:#fff8dc;color:#1a0f08;border:3px solid #1a0f08;box-shadow:3px 3px 0 rgba(0,0,0,.35);font:italic 12px/1.5 Georgia,serif;cursor:pointer}
+.mys-bub::before{content:"";position:absolute;right:100%;bottom:18px;border:8px solid transparent;border-right-color:#1a0f08}
+.mys-bub::after{content:"";position:absolute;right:calc(100% - 3px);bottom:21px;border:5px solid transparent;border-right-color:#fff8dc}
+.mys-bub .gh{visibility:hidden}
+.mys-bub.react{background:#fff2b8}
+@media (max-width:360px){.mys-sph canvas{width:96px;height:90px}.mys-bub{font-size:11px}}
+@media (prefers-reduced-motion:reduce){.mys-sph.talk canvas{animation:none}}
+
+/* ---------- Alquerque board (Scorpio DLC): 5x5 line board, colours follow the board colour options ---------- */
+.board.alq{background:var(--sq-light);background-image:linear-gradient(45deg,rgba(0,0,0,.06) 25%,transparent 25%,transparent 75%,rgba(0,0,0,.06) 75%);background-size:8px 8px}
+.board.alq .sq{display:none}
+.alq-svg{display:none;position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.board.alq .alq-svg{display:block}
+.alq-svg .ln{stroke:var(--sq-dark);stroke-width:.8;stroke-linecap:round;fill:none}
+.alq-svg .pt{fill:var(--sq-dark)}
+.alq-svg .lbl{fill:var(--sq-dark);font:bold 4px var(--ui);text-anchor:middle;dominant-baseline:middle}
+.alq-svg .el{fill:var(--sq-dark);font:bold 3.6px var(--ui);letter-spacing:.4px;text-anchor:middle;dominant-baseline:middle}
+.alq-svg .ql{fill:var(--sq-dark);font:italic 3.4px Georgia,serif;text-anchor:middle;dominant-baseline:middle;opacity:.85}
+/* Hexdame board: three tones from the board colour options */
+.board.hex{background:var(--sq-light);background-image:linear-gradient(45deg,rgba(0,0,0,.06) 25%,transparent 25%,transparent 75%,rgba(0,0,0,.06) 75%);background-size:8px 8px}
+.board.hex .sq{display:none}
+.hex-svg{display:none;position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.board.hex .hex-svg{display:block}
+.hex-svg .hx{stroke:var(--ink);stroke-width:.5;stroke-linejoin:round}
+.hex-svg .t0{fill:var(--sq-light)}
+.hex-svg .t1{fill:#b58a5a;fill:color-mix(in srgb,var(--sq-light) 50%,var(--sq-dark))}
+.hex-svg .t2{fill:var(--sq-dark)}
+.hex-svg .lbl{fill:var(--sq-dark);filter:brightness(.8);font:bold 3.4px var(--ui);text-anchor:middle;dominant-baseline:middle}
+.board.hex .cellfx{border-radius:50%}
+.board.hex .cellfx.dest::after,.board.hex .cellfx.cap::after{inset:30%}
+.board.alq .piece,.board.alq .cellfx{width:12%;height:12%}
+.board.alq .cellfx{border-radius:50%}
+.board.alq .cellfx.dest::after,.board.alq .cellfx.cap::after{inset:30%}
+</style>
+</head>
+<body>
+  <!-- Title Screen -->
+  <div class="title-screen" id="titleScreen">
+    <div class="title-sun"></div>
+    <div class="title-main">LUNAR MYTH<br>DRAUGHTS</div>
+    <div class="title-theme-prompt">Pick Theme</div>
+    <div class="title-theme-row">
+      <button class="title-btn theme-pick-btn" data-theme="kemetic">
+        <span class="theme-pick-label">Kemetic</span>
+        <span class="theme-pick-sub">Thoth vs Khonsu</span>
+      </button>
+      <button class="title-btn theme-pick-btn" data-theme="hellenic">
+        <span class="theme-pick-label">Hellenic</span>
+        <span class="theme-pick-sub">Hermes vs Selene</span>
+      </button>
+    </div>
+  </div>
+
+<canvas id="bg"></canvas>
+
+<div class="god l" id="godT"><div class="gbox"><div class="bubble" id="bT"></div><canvas id="cT" width="48" height="80"></canvas></div><div class="plate"><b id="plateTName">THOTH</b><small id="plateTEpithet">Djehuty, Lord of Writing</small></div></div>
+<div class="god r" id="godK"><div class="gbox"><div class="bubble" id="bK"></div><canvas id="cK" width="48" height="80"></canvas></div><div class="plate"><b id="plateKName">KHONSU</b><small id="plateKEpithet">The Wanderer, Moon God</small></div></div>
+
+<div class="stage" id="stage">
+ <div class="win" id="win">
+  <div class="titlebar"><i class="ti"></i><span class="tt" id="mainTitlebarText">Lunar Myth Draughts — Thoth vs. Khonsu</span>
+    <button class="tbtn" id="bMin" title="Minimize">_</button><button class="tbtn" disabled title="Maximize">□</button><button class="tbtn x" id="bClose" title="Close">✕</button></div>
+  <div class="wbody">
+   <div class="menubar"><div class="mi" data-menu="game">Game</div><div class="mi" data-menu="help">Help</div></div>
+   <div class="tabs"><button class="tab on" data-tab="game">Game</button><button class="tab" data-tab="achievements">Achievements</button><button class="tab" data-tab="mysteries">Mysteries</button><button class="tab" data-tab="support">Support</button></div>
+   <div class="client" id="gamePanel">
+    <div class="hud">
+      <div class="pcard t turn" id="cardT"><div class="av"></div><div><b id="hudTName">Thoth</b><span id="nT">12 pieces · you</span></div></div>
+      <div class="moonbox" id="moonbox"><canvas id="moon"></canvas><div>MOONLIGHT</div><div id="mtxt" class="moon-label"></div></div>
+      <div class="pcard k" id="cardK"><div class="av"></div><div><b id="hudKName">Khonsu</b><span id="nK">12 pieces · moon</span></div></div>
+    </div>
+    <div class="streak-panel">
+      <div id="streakText">DUAT RUN: 0/5</div>
+      <div class="streak-stars">
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+      </div>
+    </div>
+    <div class="frame"><div class="board" id="board">
+      <div class="layer" id="fx"></div><div class="layer" id="pcs"></div>
+    </div></div>
+    <div class="born"><span id="bornLabel">Days won for Nut:</span><div class="slots" id="slots"></div><span id="bornTxt"></span></div>
+    <div class="noprog-panel" id="noProgPanel"><span>Stalemate countdown</span><b id="noProgText">40 moves</b></div>
+    <div class="movelog" id="moveLog"><div class="movelog-empty">No moves yet.</div></div>
+    <div class="ayah" aria-label="Quran 54:1: The Hour is nigh and the moon is split asunder">
+      <div class="iw" dir="rtl" lang="ar">
+        <span class="w"><span class="ar">اقْتَرَبَتِ</span><span class="en" dir="ltr">is nigh</span></span>
+        <span class="w"><span class="ar">السَّاعَةُ</span><span class="en" dir="ltr">the Hour</span></span>
+        <span class="w"><span class="ar">وَانشَقَّ</span><span class="en" dir="ltr">and split asunder</span></span>
+        <span class="w"><span class="ar">الْقَمَرُ</span><span class="en" dir="ltr">the moon</span></span>
+      </div>
+      <p>☾ “The Hour is nigh and the moon is split asunder.” <span>Quran 54:1</span></p>
+    </div>
+    <div class="btns"><button class="xpbtn" id="bRules">How to Play</button><button class="xpbtn def" id="bNew">New Game</button></div>
+   </div>
+   <div class="client" id="achievementsPanel" hidden>
+      <div class="ach-wrap">
+        <div id="storageWarning" class="storage-warning" hidden>⚠ Progress can't be saved on this device/browser right now — achievements will reset if you reload. This usually means the page was opened as a local file, in a private/incognito window, or inside a preview that blocks storage. Open it from a normal hosted link (e.g. GitHub Pages) or a regular browser tab to keep your progress.</div>
+        <div class="ach-heading">ACHIEVEMENTS</div>
+        <div class="ach-card">
+          <div class="ach-title">🏆 Human Tier — Range</div>
+          <div class="ach-desc">Capture twice in a single move</div>
+          <div class="ach-track"><div id="ach-range" class="ach-fill"></div></div>
+          <div id="ach-range-n" class="ach-progress-label">Not yet</div>
+        </div>
+        <div class="ach-card">
+          <div class="ach-title">👑 King Tier — Promotion</div>
+          <div class="ach-desc">Promote your piece to a king</div>
+          <div class="ach-track"><div id="ach-promotion" class="ach-fill"></div></div>
+          <div id="ach-promotion-n" class="ach-progress-label">Not yet</div>
+        </div>
+        <div class="ach-card">
+          <div class="ach-title">🌙 Demi-God Tier — Winner</div>
+          <div class="ach-desc">Beat the game (5 wins) on any difficulty</div>
+          <div class="ach-track"><div id="ach-winner" class="ach-fill"></div></div>
+          <div id="ach-winner-n" class="ach-progress-label">0/5 wins this run</div>
+        </div>
+        <div class="ach-card">
+          <div class="ach-title">⚡ God-Tier — Thrice Great</div>
+          <div class="ach-desc">Beat the game on all three difficulties</div>
+          <div class="ach-track"><div id="ach-thriceGreat" class="ach-fill"></div></div>
+          <div id="ach-thriceGreat-n" class="ach-progress-label">0/3 difficulties beaten</div>
+        </div>
+        <div class="ach-card ach-card-last">
+          <div class="ach-title">𓂀 Primordial Tier — Wisest</div>
+          <div class="ach-desc">Unlock all 4 Mysteries of the Sphinx</div>
+          <div class="ach-track"><div id="ach-wisest" class="ach-fill"></div></div>
+          <div id="ach-wisest-n" class="ach-progress-label">0/4 mysteries unlocked</div>
+        </div>
+      </div>
+    </div>
+   <div class="client mys" id="mysteriesPanel" hidden></div>
+   <div class="client support" id="supportPanel" hidden></div>
+   <div class="statusbar"><div id="status">Ready.</div><div id="lvl"></div></div>
+  </div>
+ </div>
+</div>
+
+<div class="startmenu" id="sm">
+  <div class="smhead"><div class="av"></div><span id="smheadName">Djehuty</span></div>
+  <div class="smbody">
+    <div data-a="new"><em>☥</em>New Game</div>
+    <div data-a="rules"><em>?</em>How to Play</div>
+    <div data-a="myth"><em>☾</em>The Myth of the Five Days</div>
+    <div data-a="support"><em>♥</em>Support &amp; About</div>
+    <div data-a="snd"><em>♪</em><span id="smSnd">Sound: On</span></div>
+  </div>
+  <div class="smfoot"><div data-a="off">⏻ Shut Down…</div></div>
+</div>
+<div class="taskbar">
+  <button class="start" id="startBtn"><span class="sf">☥</span><span>start</span></button>
+  <div class="tasks"><button class="task active" id="taskBtn"><i></i><span>Lunar Myth Draughts</span></button></div>
+  <div class="tray"><span class="snd" id="traySnd" title="Sound">♪</span><span id="clock"></span></div>
+</div>
+<div id="layer"></div>
+<div id="off"><div>It is now safe to turn off your ka.<br><br><span class="dim-hint" id="offHint">Click anywhere — Khonsu waxes again.</span></div></div>
+
+<script>
+/* ---------- pixel sprite helpers ---------- */
+function tools(c){
+  const g=c.getContext('2d');
+  g.clearRect(0,0,c.width,c.height); // every draw starts from a blank canvas, so switching themes never leaves the old portrait showing through
+  return {
+    g,
+    R:(x,y,w,h,col)=>{g.fillStyle=col;g.fillRect(x,y,w,h);},
+    C:(cx,cy,r,col)=>{g.fillStyle=col;for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++)if(x*x+y*y<=r*r+r*.6)g.fillRect(cx+x,cy+y,1,1);},
+    E:(cx,cy,r)=>{for(let y=-r;y<=r;y++)for(let x=-r;x<=r;x++)if(x*x+y*y<=r*r+r*.6)g.clearRect(cx+x,cy+y,1,1);},
+    P:(x0,y0,rows,col)=>{g.fillStyle=col;rows.forEach((row,j)=>{for(let i=0;i<row.length;i++)if(row[i]==='#')g.fillRect(x0+i,y0+j,1,1);});}
+  };
+}
+function outline(c,col){
+  col=col||[18,9,31];
+  const g=c.getContext('2d'),W=c.width,H=c.height;
+  const src=g.getImageData(0,0,W,H),d=src.data,out=g.createImageData(W,H);
+  out.data.set(d);
+  const A=(x,y)=>(x<0||y<0||x>=W||y>=H)?0:d[(y*W+x)*4+3];
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    if(A(x,y)>0)continue;
+    if(A(x-1,y)||A(x+1,y)||A(x,y-1)||A(x,y+1)){
+      const i=(y*W+x)*4;out.data[i]=col[0];out.data[i+1]=col[1];out.data[i+2]=col[2];out.data[i+3]=255;
+    }
+  }
+  g.putImageData(out,0,0);
+}
+const GOLD='#f2c230',GOLDD='#b8860b',GOLDL='#ffe27a',LAPIS='#1f4fa8',LAPISL='#4a80e0',LAPISD='#12306e',TURQ='#2bb5a5',INK='#15121a';
+function moonCrown(T,disc,shade){
+  T.C(22,9,9,GOLD); T.E(22,6,8);
+  T.R(14,10,2,2,GOLDD); T.R(28,10,2,2,GOLDD); T.R(19,17,7,1,GOLDD);
+  T.C(22,8,5,disc); T.R(24,9,3,3,shade); T.R(19,4,2,2,'#ffffff');
+}
+function drawThoth(c){
+  const T=tools(c),R=T.R;
+  const skin='#a8602c',skinL='#c47a3a',skinD='#7d4520',cream='#f6efd8',creamD='#d6ccab',linen='#f3ecd6',linenD='#cfc4a3';
+  moonCrown(T,'#f4efd6','#cfc8a4');
+  // striped lappet wig
+  R(11,15,7,20,LAPISD); [12,14,16].forEach(x=>R(x,16,1,18,LAPISL));
+  // ibis head
+  R(17,16,9,11,cream); R(17,16,1,11,creamD); R(25,16,1,11,creamD);
+  R(22,19,2,2,INK); R(22,19,1,1,'#ffffff');
+  // long curved beak
+  const bk='#2b2438';
+  R(26,18,5,3,bk); R(31,19,4,2,bk); R(34,20,3,2,bk); R(36,22,2,2,bk); R(37,24,1,2,bk);
+  R(27,18,4,1,'#5b5070');
+  R(19,27,6,3,cream);
+  // palette (behind arms)
+  R(40,30,6,27,GOLDD); R(41,31,4,25,GOLD); R(42,33,2,2,INK); R(42,37,2,2,INK); R(41,46,4,2,LAPIS);
+  // usekh collar
+  R(13,29,16,2,GOLD); R(14,31,14,2,GOLD); R(15,33,12,1,GOLDD);
+  for(let i=0;i<8;i++)R(14+2*i,30,1,1,i%2?TURQ:LAPIS);
+  for(let i=0;i<6;i++)R(15+2*i,32,1,1,i%2?LAPIS:TURQ);
+  // torso
+  R(15,34,12,15,skin); R(15,34,2,15,skinL); R(25,34,2,15,skinD); R(19,38,1,1,skinD); R(23,38,1,1,skinD); R(21,44,1,3,skinD);
+  // far arm + hand on palette
+  R(26,45,11,3,skinD); R(36,44,5,5,skinD);
+  // near arm writing
+  R(26,35,3,7,skin); R(28,40,9,3,skin); R(36,39,3,4,skin);
+  R(38,38,6,1,'#6b4423'); R(43,37,3,1,'#6b4423'); R(46,36,1,1,INK);
+  // belt, shendyt kilt
+  R(14,48,14,2,GOLD); R(13,50,15,16,linen);
+  [16,19,22,25].forEach(x=>R(x,51,1,14,linenD));
+  R(27,52,5,12,linenD); R(28,53,1,10,LAPIS); R(27,64,5,1,GOLD); R(13,65,15,1,GOLD);
+  // legs, feet
+  R(15,66,4,10,skinD); R(14,75,8,3,skinD);
+  R(21,66,4,10,skin); R(21,75,9,3,skin);
+  R(15,72,4,1,GOLD); R(21,72,4,1,GOLD);
+  outline(c);
+}
+function drawKhonsu(c){
+  const T=tools(c),R=T.R;
+  const BL='#2c5fc4',BLD='#1c3e8f',BLL='#4f86e8',wrap='#f4f1e6',wrapD='#d6d1ba',hair='#0f1f5a';
+  moonCrown(T,'#eef2fa','#b9c4d8');
+  // wig + sidelock of youth
+  R(12,15,7,19,hair); [13,15,17].forEach(x=>R(x,16,1,17,'#3559c8')); R(12,32,4,3,GOLD);
+  R(16,14,10,3,hair);
+  // profile face
+  R(17,16,9,11,BL); R(17,16,1,11,BLD); R(26,20,2,3,BL); R(26,23,1,1,BLD); R(25,25,2,2,BL);
+  R(22,19,3,1,'#ffffff'); R(23,19,1,1,INK); R(21,18,4,1,hair);
+  // curved ceremonial beard
+  R(24,27,3,3,'#1b1640'); R(25,30,3,3,'#1b1640'); R(27,32,2,2,'#1b1640'); R(29,33,1,1,GOLD);
+  R(19,27,6,3,BL);
+  // was staff (in front)
+  const sx=36;
+  for(let y=24;y<77;y+=4)R(sx-1,y,3,4,(((y-24)/4)|0)%2?LAPIS:GOLD);
+  T.C(sx,19,3,GOLD); T.E(sx,19,1); R(sx-3,23,7,2,GOLD); R(sx-1,25,3,1,GOLDD);
+  // mummy wrappings
+  R(14,34,13,42,wrap); R(14,34,1,42,wrapD); R(26,34,1,42,wrapD);
+  for(let y=38;y<76;y+=3)R(14,y,13,1,wrapD);
+  // collar
+  R(12,29,17,2,GOLD); R(13,31,15,2,GOLD); R(14,33,13,1,GOLDD);
+  for(let i=0;i<8;i++)R(13+2*i,30,1,1,i%2?LAPIS:TURQ);
+  for(let i=0;i<6;i++)R(14+2*i,32,1,1,i%2?TURQ:LAPIS);
+  // crossed crook & flail
+  for(let i=0;i<10;i++){R(15+i,34+i,2,2,GOLD);R(24-i,34+i,2,2,LAPISL);}
+  R(23,44,3,4,GOLDD); R(14,44,3,3,LAPISD);
+  R(13,33,3,3,BL); R(25,33,3,3,BL);
+  // plinth
+  R(6,77,34,3,LAPIS); R(6,77,34,1,GOLD);
+  outline(c);
+}
+const PIECE_ICONS={
+  ankh:{x0:5,y0:3,rows:['.###.','#...#','#...#','.###.','..#..','#####','..#..','..#..']},
+  mercury:{x0:4,y0:2,rows:['.#...#.','..#.#..','...#...','..###..','.#####.','.#####.','.#####.','..###..','...#...','..###..','...#...']}
+};
+function pieceSprite(side,iconKey){
+  const S=15,c=document.createElement('canvas');c.width=c.height=S;const g=c.getContext('2d');
+  const P=side==='T'
+    ?{base:'#2456b8',hi:'#5b8de6',lo:'#173a82',icon:'#f6cf3a'}
+    :{base:'#e6e2d2',hi:'#ffffff',lo:'#b0ab98',icon:'#1b2e7a'};
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){
+    const dx=x-7,dy=y-7,d=Math.sqrt(dx*dx+dy*dy);
+    if(d>7.3)continue;
+    let col;
+    if(d>6.3)col='#1a0f08';
+    else if(d>5.0)col=(dx+dy<-2)?'#ffe27a':(dx+dy>3?'#a87908':'#f2c230');
+    else{col=P.base;if(dx+dy<-3)col=P.hi;else if(dx+dy>4)col=P.lo;}
+    g.fillStyle=col;g.fillRect(x,y,1,1);
+  }
+  g.fillStyle=P.icon;
+  const put=(x0,y0,rows)=>rows.forEach((r,j)=>{for(let i=0;i<r.length;i++)if(r[i]==='#')g.fillRect(x0+i,y0+j,1,1);});
+  if(side==='T'){const pat=PIECE_ICONS[iconKey||'ankh'];put(pat.x0,pat.y0,pat.rows);}
+  else put(3,4,['..###....','.##......','##....##.','##....##.','##.......','.##......','..###....']);
+  return c;
+}
+function drawMoonPhase(c,f){
+  const S=21,g=c.getContext('2d');c.width=c.height=S;g.clearRect(0,0,S,S);
+  const cx=10,cy=10,r=9.5,k=1-2*f;
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){
+    const dx=x-cx,dy=y-cy,d2=dx*dx+dy*dy;if(d2>r*r)continue;
+    const hw=Math.sqrt(Math.max(r*r-dy*dy,.0001)),nx=dx/hw,lit=nx>=k;
+    let col;
+    if(Math.sqrt(d2)>r-1.1)col=lit?'#fff6c8':'#2a3170';
+    else col=lit?(((x*7+y*13)%11===0)?'#d8d09a':'#f4eec0'):(((x*5+y*3)%9===0)?'#232a63':'#171c4d');
+    g.fillStyle=col;g.fillRect(x,y,1,1);
+  }
+  g.strokeStyle='#0c0f2e';g.lineWidth=1;
+}
+function drawHermes(c){
+  const T=tools(c),R=T.R;
+  const skin='#c98a4f',skinL='#e0a86c',skinD='#9c6532',bronze='#8a5a2a';
+  const cloak='#7a1f2b',cloakD='#5a1520',cloakL='#a8384a',wing='#eef1f5',wingD='#c7cedb';
+  const hair='#3a2618';
+  // petasos-brim travel hat, tipped back
+  R(13,12,17,3,bronze); R(13,12,17,1,'#a8763f'); R(16,10,11,3,bronze);
+  // hair + face
+  R(15,15,13,10,hair); R(17,17,9,9,skin); R(17,17,1,9,skinD); R(25,17,1,9,skinD);
+  R(21,20,3,1,'#ffffff'); R(22,20,1,1,INK); R(19,19,5,1,hair);
+  R(19,26,6,2,skinD);
+  // neck + torso, chlamys cloak pinned at one shoulder
+  R(18,27,8,4,skin);
+  R(16,31,16,18,skin); R(16,31,2,18,skinL); R(30,31,2,18,skinD);
+  R(16,31,7,18,cloak); R(16,31,2,18,cloakL);
+  T.C(18,33,2,GOLD);
+  R(25,35,1,1,skinD); R(29,35,1,1,skinD); R(23,41,1,3,skinD);
+  // belt + short chiton skirt
+  R(14,49,17,3,GOLDD); R(13,52,19,14,cloak);
+  [16,19,22,25,28].forEach(x=>R(x,53,1,12,cloakD));
+  R(13,64,19,1,GOLDD);
+  // both arms, drawn last so they sit cleanly on top of the torso/skirt
+  R(30,32,4,17,skin); R(29,45,5,4,skin); // near arm, reaching for the rod
+  R(13,32,4,15,skinD); R(12,45,5,4,skinD); // far arm resting at the waist
+  // rod of asclepius — staff with a single coiled snake — held clear of the body
+  const rx=37;
+  R(rx,18,2,58,'#caa64a'); R(rx,18,1,58,'#e6c878');
+  for(let y=24;y<66;y+=8){R(rx-2,y,2,3,'#3f8f4a');R(rx+2,y+4,2,3,'#3f8f4a');}
+  T.C(rx+1,16,2,'#3f8f4a');
+  // legs
+  R(15,66,4,10,skinD); R(23,66,4,10,skin);
+  // winged sandals (talaria)
+  R(14,75,8,3,skinD); R(22,75,9,3,skin);
+  R(10,74,5,3,wing); R(10,74,5,1,wingD); R(30,74,5,3,wing); R(30,74,1,3,wingD);
+  outline(c);
+}
+function drawSelene(c){
+  const T=tools(c),R=T.R;
+  const skin='#e3c39c',skinL='#f0d9b8',skinD='#b8946a';
+  const robe='#2a3170',robeD='#171c4d',robeL='#4a55a8',hair='#241a3a';
+  const silver='#cfd6ec';
+  // lunar crown (reuse the crescent-disc headdress)
+  moonCrown(T,'#eef2fa','#b9c4d8');
+  // hair + face
+  R(15,15,13,9,hair); R(17,17,9,8,skin); R(17,17,1,8,skinD); R(25,17,1,8,skinD);
+  R(21,19,3,1,'#ffffff'); R(22,19,1,1,INK); R(19,18,5,1,hair);
+  R(19,25,6,2,skinD);
+  // hair trailing past the shoulders
+  R(13,23,3,12,hair); R(32,23,3,12,hair);
+  // neck, shoulders
+  R(18,26,8,4,skin);
+  // draped peplos gown, silver-trimmed neckline
+  R(13,29,22,2,silver);
+  R(14,31,20,35,robe); R(14,31,3,35,robeL); R(28,31,3,35,robeD);
+  for(let y=38;y<62;y+=5)R(16,y,16,1,robeD);
+  // sash
+  R(14,47,20,2,silver);
+  // both arms, drawn last so they sit cleanly on top of the robe
+  R(30,32,4,13,skin); R(31,27,3,5,skin); // near arm raised, holding a small torch
+  R(32,20,2,8,'#caa64a'); T.C(33,18,2,'#e0863a');
+  R(11,32,4,13,skinD); // far arm resting at the side
+  // legs, feet peeking from the hem
+  R(17,66,4,9,skinD); R(23,66,4,9,skin);
+  R(16,74,4,4,skinD); R(23,74,4,4,skin);
+  outline(c);
+}
+if(typeof module!=='undefined')module.exports={drawThoth,drawKhonsu,drawHermes,drawSelene,pieceSprite,drawMoonPhase};
+
+</script>
+
+  <!-- Start Menu -->
+  <div class="startmenu-overlay" id="startMenuOverlay">
+    <div class="startmenu-container">
+      <div class="startmenu-titlebar">☾ DRAUGHTS OF THE MOON ☾</div>
+      <div class="startmenu-content">
+        <canvas id="startMenuThoth" class="startmenu-icon" width="48" height="80"></canvas>
+        <div class="startmenu-title">CHOOSE YOUR SKILL</div>
+        <div class="startmenu-subtitle" id="startMenuSubtitle">Play against Khonsu,<br>God of the Moon</div>
+        <div class="startmenu-buttons" id="difficultyButtons"></div>
+        <div class="startmenu-myth" id="startMenuMyth"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(()=>{
+'use strict';
+const $=s=>document.querySelector(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const rng=()=>Math.random(); // single RNG seam for the whole app (AI blunders, dialogue picks)
+const rnd=a=>a[Math.floor(rng()*a.length)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); // shared HTML-escape utility
+
+/* ---------- art setup ---------- */
+drawThoth($('#cT'));drawKhonsu($('#cK'));
+const sprT=pieceSprite('T').toDataURL(),sprK=pieceSprite('K').toDataURL();
+document.documentElement.style.setProperty('--sprT',`url(${sprT})`);
+document.documentElement.style.setProperty('--sprK',`url(${sprK})`);
+
+const GW=48,GH=80,PX=4;
+function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function drawBG(){
+  const bg=$('#bg'),W=Math.ceil(innerWidth/PX)+1,H=Math.ceil(innerHeight/PX)+1;
+  bg.width=W;bg.height=H;bg.style.width=W*PX+'px';bg.style.height=H*PX+'px';
+  const g=bg.getContext('2d'),rand=mulberry(1337);
+  const hor=Math.floor(H*.62);
+  const bands=['#070a2b','#0b1040','#121a58','#1d2a72','#2c3a8a','#4a4a94','#7a5a8c','#b0657a','#e08a5a','#f5b25a'];
+  for(let y=0;y<hor;y++){
+    const t=y/hor*(bands.length-1),i=Math.floor(t),f=t-i;
+    g.fillStyle=bands[i];g.fillRect(0,y,W,1);
+    if(f>.6&&bands[i+1]){g.fillStyle=bands[i+1];for(let x=(y%2);x<W;x+=2)g.fillRect(x,y,1,1);}
+  }
+  const stars=['#fff8dc','#cfd8ff','#ffe9a8'];
+  for(let n=0;n<W*hor/170;n++){
+    const x=Math.floor(rand()*W),y=Math.floor(rand()*hor*.8);
+    g.fillStyle=stars[Math.floor(rand()*3)];g.fillRect(x,y,1,1);
+    if(rand()<.06){g.fillRect(x-1,y,3,1);g.fillRect(x,y-1,1,3);}
+  }
+  // background infrastructure: pyramids (Kemetic) or a temple colonnade (Hellenic)
+  const pyr=(cx,hw,lit,shade)=>{
+    const h=Math.floor(hw*.8);
+    for(let j=0;j<=h;j++){
+      const half=Math.floor(j/h*hw),y=hor-h+j;
+      g.fillStyle=lit;g.fillRect(cx-half,y,half,1);
+      g.fillStyle=shade;g.fillRect(cx,y,half+1,1);
+      if(j%5===4){g.fillStyle='rgba(0,0,0,.12)';g.fillRect(cx-half,y,half*2+1,1);}
+    }
+  };
+  const cols=(cx,hw,lit,shade)=>{
+    const h=Math.max(6,Math.floor(hw*1.6)),n=5,colW=Math.max(2,Math.floor(hw/4));
+    const left=cx-hw,spacing=n>1?Math.floor((hw*2-colW)/(n-1)):0,topY=hor-h;
+    // triangular pediment
+    const pH=Math.max(3,Math.floor(hw*.4));
+    for(let j=0;j<pH;j++){
+      const half=Math.floor((pH-j)/pH*hw*.95),y=topY-pH+j;
+      if(y<0)continue;
+      g.fillStyle=lit;g.fillRect(cx-half,y,half,1);
+      g.fillStyle=shade;g.fillRect(cx,y,half+1,1);
+    }
+    // entablature (beam across the column tops)
+    g.fillStyle=shade;g.fillRect(left-2,topY,hw*2+4,3);
+    g.fillStyle=lit;g.fillRect(left-2,topY,hw*2+4,1);
+    // fluted columns + capitals
+    for(let i=0;i<n;i++){
+      const x=left+Math.floor(i*spacing);
+      g.fillStyle=shade;g.fillRect(x-1,topY+3,colW+2,2);
+      g.fillStyle=lit;g.fillRect(x,topY+5,colW,h-5);
+      g.fillStyle=shade;g.fillRect(x+colW-1,topY+5,1,h-5);
+      if(colW>2)g.fillStyle='rgba(0,0,0,.15)',g.fillRect(x+1,topY+5,1,h-5);
+    }
+    // stylobate (base platform)
+    g.fillStyle=shade;g.fillRect(left-3,hor-2,hw*2+6,3);
+  };
+  const ps=[[.10,.045],[.21,.085],[.42,.06],[.58,.05],[.75,.075],[.89,.11]];
+  if(THEME.id==='hellenic'){
+    ps.forEach(([x,w])=>cols(Math.floor(W*x),Math.floor(Math.min(W*w,46)),'#e9e4d6','#9c9483'));
+  }else{
+    ps.forEach(([x,w])=>pyr(Math.floor(W*x),Math.floor(Math.min(W*w,46)),'#a9748a','#6f4a6c'));
+  }
+  // dunes
+  const layers=[[0,3,'#b7724a','#d08e5c'],[.06,5,'#cf8d50','#e6ab68'],[.13,7,'#e3b06a','#f2c887']];
+  layers.forEach(([off,amp,col,top],L)=>{
+    const base=hor+Math.floor(H*off),ph=rand()*6;
+    for(let x=0;x<W;x++){
+      const y=Math.floor(base+Math.sin(x*(.03+L*.01)+ph)*amp+Math.sin(x*.09+ph*2)*amp*.4);
+      g.fillStyle=col;g.fillRect(x,y,1,H-y);g.fillStyle=top;g.fillRect(x,y,1,1);
+    }
+  });
+  const sp=['#d4a35a','#f7d590','#c78d45'];
+  for(let n=0;n<W*H/60;n++){const y=Math.floor(hor+H*.13+rand()*(H*.3));if(y>=H)continue;g.fillStyle=sp[Math.floor(rand()*3)];g.fillRect(Math.floor(rand()*W),y,1,1);}
+  // frieze above taskbar
+  const fy=H-Math.ceil(30/PX)-8-6;
+  const fr=[[0,'#f2c230'],[1,'#1f4fa8'],[2,null],[3,'#1f4fa8'],[4,'#f2c230'],[5,'#12091f']];
+  fr.forEach(([r,c])=>{
+    for(let x=0;x<W;x++){
+      let col=c;
+      if(r===2)col=(x%8<4)?'#c1352b':'#2bb5a5';
+      g.fillStyle=col;g.fillRect(x,fy+r,1,1);
+    }
+  });
+}
+
+function layout(){
+  drawBG();
+  const W=innerWidth,H=innerHeight,win=$('#win'),r=win.getBoundingClientRect();
+  const sideGap=(W-r.width)/2;
+  let sc;
+  if(sideGap>=56){
+    // Enough room beside the window to show portraits there — true on desktop,
+    // and on landscape phones/tablets once the window is capped narrower than
+    // the viewport. Scale by that side gap and by viewport height, not by
+    // whether the window's own content happens to overflow the viewport.
+    // Reserve real headroom above the portrait for its name plate and its
+    // speech bubble (both anchored above the portrait via position:fixed,
+    // so if the portrait is scaled too big there's nowhere for them to go
+    // but off the top of the screen).
+    const shortLandscape=matchMedia('(orientation:landscape) and (max-height:500px)').matches;
+    const plateH=44,bubbleRoom=shortLandscape?0:60; // short landscape: the bubble overlays the portrait instead of sitting above it
+    const availH=Math.max(0,H-30-40-plateH-bubbleRoom);
+    sc=Math.floor(Math.min((sideGap-16)/GW,availH/GH));
+    document.documentElement.style.setProperty('--gap',Math.max(60,Math.floor(sideGap-W*.015-10))+'px'); // room between the viewport edge offset and the window
+  }else{
+    // Narrow/portrait: no room beside the window, so portraits go in
+    // whatever strip is left below it, before the taskbar.
+    const rem=Math.max(0,H-30-(r.width?r.bottom:0)-40);
+    sc=Math.floor(Math.min(rem/GH,(W/2-10)/GW));
+    document.documentElement.style.removeProperty('--gap');
+  }
+  ['T','K'].forEach(k=>{
+    const god=$('#god'+k),cv=$('#c'+k);
+    if(sc<2){god.classList.add('hide');return;}
+    god.classList.remove('hide');cv.style.width=GW*sc+'px';cv.style.height=GH*sc+'px';
+  });
+}
+let rt;
+function scheduleLayout(delay){clearTimeout(rt);rt=setTimeout(layout,delay==null?80:delay);}
+addEventListener('resize',()=>scheduleLayout(80));
+addEventListener('orientationchange',()=>{
+  // Mobile browsers often report stale innerWidth/innerHeight right as this
+  // fires, then settle a bit later (and sometimes later still, once the
+  // address bar finishes collapsing/expanding) — so re-layout more than once.
+  scheduleLayout(50);
+  setTimeout(layout,350);
+  setTimeout(layout,700);
+});
+if(window.visualViewport){
+  window.visualViewport.addEventListener('resize',()=>scheduleLayout(80));
+}
+
+/* ---------- sound ---------- */
+let ac=null,soundOn=true;
+function beep(f,d,type,vol,when){
+  if(!soundOn)return;
+  try{
+    ac=ac||new(window.AudioContext||window.webkitAudioContext)();
+    const o=ac.createOscillator(),g=ac.createGain(),t=ac.currentTime+(when||0);
+    o.type=type||'square';o.frequency.value=f;g.gain.setValueAtTime(vol||.05,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);
+    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+d+.02);
+  }catch(e){}
+}
+const SFX={
+  sel:()=>beep(660,.05),
+  move:()=>{beep(330,.06);beep(392,.06,'square',.05,.05)},
+  cap:()=>{beep(196,.09,'square',.07);beep(131,.16,'square',.07,.08)},
+  king:()=>[523,659,784,1047].forEach((f,i)=>beep(f,.1,'square',.05,i*.07)),
+  win:()=>[392,523,659,784,659,784,1047].forEach((f,i)=>beep(f,.16,'square',.05,i*.13)),
+  lose:()=>[392,330,262,196].forEach((f,i)=>beep(f,.22,'triangle',.07,i*.18)),
+  err:()=>beep(140,.14,'sawtooth',.05),
+  click:()=>beep(880,.04,'square',.04),
+  achieve:()=>[660,880,1108,1320].forEach((f,i)=>beep(f,.12,'triangle',.06,i*.06))
+};
+/* ---------- services/storage: one adapter for all persistence ---------- */
+const STORAGE_KEYS=Object.freeze({
+  RUN_WINS:'thoth_days',
+  ACH_RANGE:'ach_range',
+  ACH_PROMOTION:'ach_promotion',
+  ACH_WINNER:'ach_winner',
+  ACH_THRICE_GREAT:'ach_thriceGreat',
+  ACH_WISEST:'ach_wisest',
+  MYSTERIES:'lmd_mysteries', // JSON: {unlocked, solved[4], progress[4], misses[4]} — theme-agnostic, like achievements
+  BEATEN_DIFFICULTY_PREFIX:'beaten_', // + difficulty id, e.g. 'beaten_0'
+  SCHEMA_VERSION:'lmd_schema_version',
+  BOARD_THEME:'lmd_board_theme',
+  PIECE_MOTION:'lmd_piece_motion', // 'sliding' (default) or 'snappy'
+  BEST_RUN_WINS:'lmd_best_run_wins' // all-time high-water mark, any difficulty, never resets on loss/switch
+});
+// Bump this when a past bug could have written bad values into keys below,
+// so existing saves get corrected once instead of carrying the bad data forever.
+const CURRENT_SCHEMA_VERSION=2; // v2: Winner/Thrice Great used to unlock on any single round win
+const storage={
+  available:true, // set by probe() at startup; false means progress can't survive a reload here
+  probe(){
+    const k='__lmd_probe__';
+    try{
+      localStorage.setItem(k,'1');
+      const ok=localStorage.getItem(k)==='1'; // confirm it actually round-trips, not just that setItem didn't throw
+      localStorage.removeItem(k);
+      storage.available=ok;
+    }catch(e){
+      storage.available=false;
+    }
+    return storage.available;
+  },
+  get(key,fallback){
+    try{const v=localStorage.getItem(key);return v===null?fallback:v;}catch(e){return fallback;}
+  },
+  getBool(key){return storage.get(key,'false')==='true';},
+  getNumber(key,fallback){const v=storage.get(key,null);return v===null?fallback:(+v||fallback);},
+  set(key,value){try{localStorage.setItem(key,String(value));return true;}catch(e){return false;}},
+  remove(key){try{localStorage.removeItem(key);return true;}catch(e){return false;}}
+};
+
+function runStorageMigrations(){
+  const seenVersion=storage.getNumber(STORAGE_KEYS.SCHEMA_VERSION,1);
+  if(seenVersion>=CURRENT_SCHEMA_VERSION)return;
+  if(seenVersion<2){
+    // v1 -> v2: Winner/Thrice Great could have been unlocked by a single
+    // round win instead of a completed 5-win run. Clear just those.
+    storage.remove(STORAGE_KEYS.ACH_WINNER);
+    storage.remove(STORAGE_KEYS.ACH_THRICE_GREAT);
+    LEVELS.forEach(lvl=>storage.remove(STORAGE_KEYS.BEATEN_DIFFICULTY_PREFIX+lvl.id));
+  }
+  storage.set(STORAGE_KEYS.SCHEMA_VERSION,CURRENT_SCHEMA_VERSION);
+}
+
+function unlockAchievement(id,name,desc){
+  if(achievements[id])return; // Already unlocked
+  achievements[id]=true;
+  storage.set(id==='wisest'?'ach_wisest':mkey('ach_'+id),'true'); // Wisest is global; the rest are per ruleset
+  SFX.achieve();
+  showAchievementNotif(name,desc);
+  updateAchievementsDisplay();
+  flashAchievementCard(id);
+  pulseAchievementsTab();
+}
+function flashAchievementCard(id){
+  const bar=$('#ach-'+id);if(!bar)return;
+  const card=bar.closest('.ach-card');if(!card)return;
+  card.classList.remove('ach-just-unlocked');
+  void card.offsetWidth; // restart the animation if it's already mid-run
+  card.classList.add('ach-just-unlocked');
+  setTimeout(()=>card.classList.remove('ach-just-unlocked'),1200);
+}
+function pulseAchievementsTab(){
+  const tab=document.querySelector('.tab[data-tab="achievements"]');
+  if(!tab||tab.classList.contains('on'))return; // already looking at it, no need to nudge
+  tab.classList.remove('ach-pulse');
+  void tab.offsetWidth;
+  tab.classList.add('ach-pulse');
+  setTimeout(()=>tab.classList.remove('ach-pulse'),3000);
+}
+
+function showAchievementNotif(name,desc){
+  const notif=document.createElement('div');
+  notif.className='ach-toast';
+  notif.innerHTML=`<div class="ach-toast-title">🏆 ${esc(name)}</div><div class="ach-toast-desc">${esc(desc)}</div>`;
+  document.body.appendChild(notif);
+  setTimeout(()=>notif.remove(),3000);
+}
+
+// Restore achievement + run history from the storage adapter
+function loadAchievements(){
+  achievements.range=storage.getBool(mkey(STORAGE_KEYS.ACH_RANGE));
+  achievements.promotion=storage.getBool(mkey(STORAGE_KEYS.ACH_PROMOTION));
+  achievements.winner=storage.getBool(mkey(STORAGE_KEYS.ACH_WINNER));
+  achievements.thriceGreat=storage.getBool(mkey(STORAGE_KEYS.ACH_THRICE_GREAT));
+  achievements.wisest=storage.getBool(STORAGE_KEYS.ACH_WISEST);
+  LEVELS.forEach(lvl=>{
+    if(storage.getBool(mkey(STORAGE_KEYS.BEATEN_DIFFICULTY_PREFIX+lvl.id)))beatenDifficulties.add(lvl.id);
+  });
+}
+
+
+function setSound(v){soundOn=v;$('#traySnd').classList.toggle('off',!v);$('#smSnd').textContent='Sound: '+(v?'On':'Off');}
+let pieceMotion='sliding'; // 'sliding' (default, animated slide) or 'snappy' (instant, no transition)
+function setPieceMotion(mode){
+  pieceMotion=mode;
+  document.body.classList.toggle('snappy-motion',mode==='snappy');
+  storage.set(STORAGE_KEYS.PIECE_MOTION,mode);
+}
+function loadPieceMotion(){
+  setPieceMotion(storage.get(STORAGE_KEYS.PIECE_MOTION,'sliding'));
+}
+
+/* ---------- game/constants: shared data model ---------- */
+// board: 64-array. 1 = Thoth man (moves up), 2 = Thoth king, -1 = Khonsu man (moves down), -2 = Khonsu king
+const SIDE=Object.freeze({THOTH:1,KHONSU:-1});
+const PIECE=Object.freeze({EMPTY:0,THOTH_MAN:1,THOTH_KING:2,KHONSU_MAN:-1,KHONSU_KING:-2});
+let N=8,CELLS=64; // board stride + cell count; rulesets resize these (8, 9 for hex, 10)
+const BOARD={get SIZE(){return N},get CELLS(){return CELLS}};
+/* ---------- rulesets (base game + DLC modes) ----------
+   american: base game. russian: Aquarius DLC — men also capture backwards, kings fly,
+   a man that crowns mid-capture keeps capturing as a king. Achievements and Duat Run
+   progress are stored per ruleset (suffix on the storage key); Mysteries and Wisest are global. */
+const RULESETS=Object.freeze({
+  american:{id:'american',name:'American Checkers',n:8,rows:3,flying:false,kingValue:175,depthAdj:0},
+  alquerque:{id:'alquerque',name:'Alquerque',n:8,graph:true,flying:false,kingValue:200,depthAdj:0},
+  russian:{id:'russian',name:'Russian Draughts',n:8,rows:3,flying:true,menBack:true,kingValue:300,depthAdj:-1},
+  international:{id:'international',name:'International Draughts',n:10,rows:4,flying:true,menBack:true,kingValue:300,depthAdj:-2},
+  hexdame:{id:'hexdame',name:'Hexdame',n:9,hex:true,flying:true,menBack:true,kingValue:300,depthAdj:-3}
+});
+let RULES=RULESETS.american;
+const mkey=k=>RULES.id==='american'?k:k+':'+RULES.id;
+const rowOf=i=>(i/N)|0;
+const colOf=i=>i%N;
+const idxOf=(r,c)=>r*N+c;
+// Labels: squares a1.. (row 1 nearest Thoth); hex: letter = row axis, number = column axis (a1 is the bottom tip)
+const coordLabel=i=>RULES.graph?'abcde'[colOf(i)]+(5-rowOf(i)):RULES.hex?'abcdefghi'[rowOf(i)]+(colOf(i)+1):'abcdefghij'[colOf(i)]+(N-rowOf(i));
+const isKing=v=>Math.abs(v)===2;
+const sideOf=v=>Math.sign(v);
+// Hexdame uses axial coordinates stored as (r,c) with stride 9: a cell exists when |r-c|<=4.
+// Its six neighbours are (±1,±1) (straight up/down), (±1,0) and (0,±1).
+const H6=[[1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]];
+const onBoard=(r,c)=>RULES.hex?(r>=0&&r<9&&c>=0&&c<9&&Math.abs(r-c)<=4):(r>=0&&r<N&&c>=0&&c<N);
+const allDirs=()=>RULES.hex?H6:D4;
+// crown test: square — far row; hex — the two far edges (Thoth: r=8 or c=8, Khonsu: r=0 or c=0)
+const crownAt=(side,r,c)=>RULES.graph?(side===SIDE.THOTH?r===0:r===4):RULES.hex?(side===SIDE.THOTH?(r===8||c===8):(r===0||c===0)):(side===SIDE.THOTH?r===0:r===N-1);
+
+// Named evaluation weights so difficulty tuning doesn't require reading magic numbers.
+const EVAL=Object.freeze({
+  MAN_VALUE:100,
+  KING_VALUE:175,
+  ADVANCE_WEIGHT:4,   // reward per row advanced toward promotion
+  CENTER_BONUS:3,     // reward for occupying the central 4x4
+  BACK_ROW_BONUS:6,   // reward for a man still guarding its own back row
+  EDGE_PENALTY:2      // small penalty for sitting on the side columns
+});
+
+
+/* ---------- game/rules: pure move generation (no DOM, no audio, no storage) ---------- */
+const D4=[[-1,-1],[-1,1],[1,-1],[1,1]],DU=[[-1,-1],[-1,1]],DD=[[1,-1],[1,1]];
+function jumpsRU(b,start,side){
+  // Russian: men capture in all 4 directions; kings fly. Captured pieces stay on the board
+  // (blocking, never jumped twice) until the whole move ends. A king must pick a landing
+  // square that lets it keep capturing, when one exists. No majority rule.
+  const v0=b[start];b[start]=0;
+  const rec=(pos,king,path,caps)=>{
+    const res=[],r=rowOf(pos),c=colOf(pos);
+    for(const[dr,dc]of allDirs()){
+      let rr=r+dr,cc=c+dc,cap=-1,lands=[];
+      if(!king){
+        if(!onBoard(rr,cc))continue;
+        const m=idxOf(rr,cc),r2=rr+dr,c2=cc+dc;
+        if(b[m]!==0&&sideOf(b[m])===-side&&!caps.includes(m)&&onBoard(r2,c2)&&b[idxOf(r2,c2)]===0){cap=m;lands=[idxOf(r2,c2)];}
+      }else{
+        while(onBoard(rr,cc)&&b[idxOf(rr,cc)]===0){rr+=dr;cc+=dc;}
+        if(!onBoard(rr,cc))continue;
+        const m=idxOf(rr,cc);
+        if(sideOf(b[m])!==-side||caps.includes(m))continue;
+        rr+=dr;cc+=dc;
+        while(onBoard(rr,cc)&&b[idxOf(rr,cc)]===0){lands.push(idxOf(rr,cc));rr+=dr;cc+=dc;}
+        if(lands.length)cap=m;
+      }
+      if(cap<0)continue;
+      const ls=lands.map(l=>{const nk=king||crownAt(side,rowOf(l),colOf(l));return{l,subs:rec(l,nk,[...path,l],[...caps,cap])};});
+      if(ls.some(x=>x.subs.length))ls.forEach(x=>{if(x.subs.length)res.push(...x.subs);});
+      else ls.forEach(x=>res.push({from:start,path:[...path,x.l],caps:[...caps,cap]}));
+    }
+    return res;
+  };
+  const out=rec(start,isKing(v0),[],[]);
+  b[start]=v0;return out;
+}
+function jumps(b,start,side){
+  if(RULES.flying)return jumpsRU(b,start,side);
+  const res=[],v0=b[start];b[start]=0;
+  const rec=(pos,king,path,caps)=>{
+    let any=false;const r=rowOf(pos),c=colOf(pos);
+    for(const[dr,dc]of(king?D4:(side===SIDE.THOTH?DU:DD))){
+      const r2=r+2*dr,c2=c+2*dc;
+      if(!onBoard(r2,c2))continue;
+      const m=idxOf(r+dr,c+dc),l=idxOf(r2,c2);
+      if(b[m]!==0&&sideOf(b[m])===-side&&b[l]===0&&!caps.includes(m)){
+        any=true;
+        const nk=king||crownAt(side,r2,c2);
+        const np=[...path,l],nc=[...caps,m];
+        if(nk&&!king)res.push({from:start,path:np,caps:nc});   // crowning ends the turn
+        else rec(l,nk,np,nc);
+      }
+    }
+    if(!any&&path.length)res.push({from:start,path,caps});
+  };
+  rec(start,isKing(v0),[],[]);
+  b[start]=v0;return res;
+}
+
+/* ---------- Alquerque engine (Scorpio DLC) ----------
+   5x5 points stored as idx=r*8+c (r,c<5) so the same board arrays/ids/UI work. Lines: all rows and
+   columns, plus diagonals through the points where (r+c) is even. Pieces step one point forward or
+   sideways along a line (never backward) and jump an adjacent enemy along a line onto the empty point
+   beyond, in any direction. Capturing is mandatory, multi-jumps must be completed. */
+const ALQ_ORTH=[[-1,0],[1,0],[0,-1],[0,1]],ALQ_DIAG=[[-1,-1],[-1,1],[1,-1],[1,1]];
+const alqOn=(r,c)=>r>=0&&r<5&&c>=0&&c<5;
+const alqDirs=(r,c)=>((r+c)%2===0?ALQ_ORTH.concat(ALQ_DIAG):ALQ_ORTH);
+function alqJumps(b,start,side){
+  const nb=b.slice();nb[start]=0;const res=[];
+  const rec=(pos,path,caps)=>{
+    const r=rowOf(pos),c=colOf(pos);let any=false;
+    for(const[dr,dc]of alqDirs(r,c)){
+      const lr=r+2*dr,lc=c+2*dc;if(!alqOn(lr,lc))continue;
+      const m=idxOf(r+dr,c+dc),l=idxOf(lr,lc);
+      if(nb[m]!==0&&sideOf(nb[m])===-side&&nb[l]===0){
+        any=true;const keep=nb[m];nb[m]=0;
+        rec(l,[...path,l],[...caps,m]);
+        nb[m]=keep;
+      }
+    }
+    if(!any&&path.length)res.push({from:start,path,caps});
+  };
+  rec(start,[],[]);return res;
+}
+function genMovesALQ(b,side){
+  let caps=[];const quiet=[],fwd=side===SIDE.THOTH?-1:1;
+  for(let i=0;i<BOARD.CELLS;i++){
+    const r=rowOf(i),c=colOf(i);
+    if(!alqOn(r,c)||sideOf(b[i])!==side)continue;
+    caps=caps.concat(alqJumps(b,i,side));
+    if(caps.length)continue;
+    for(const[dr,dc]of alqDirs(r,c)){
+      if(dr===-fwd&&!isKing(b[i]))continue; // men never step backward; a promoted piece may
+      const r2=r+dr,c2=c+dc;
+      if(alqOn(r2,c2)&&b[idxOf(r2,c2)]===0)quiet.push({from:i,path:[idxOf(r2,c2)],caps:[]});
+    }
+  }
+  return caps.length?caps:quiet;
+}
+function evalALQ(b){
+  let s=0;
+  for(let i=0;i<BOARD.CELLS;i++){
+    const v=b[i];if(!v)continue;
+    const r=rowOf(i),c=colOf(i);if(!alqOn(r,c))continue;
+    const sd=sideOf(v);
+    let x=isKing(v)?RULES.kingValue:100+(sd===SIDE.THOTH?(4-r):r)*4;
+    if(r>=1&&r<=3&&c>=1&&c<=3)x+=3;
+    if((r+c)%2===0)x+=2; // points with diagonals are more mobile
+    s+=sd*x;
+  }
+  return s;
+}
+function buildAlqSvg(){
+  const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');
+  svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('class','alq-svg');svg.setAttribute('aria-hidden','true');
+  const X=n=>17+n*16.5,line=(a,b,c,d)=>`<line class="ln" x1="${X(a)}" y1="${X(b)}" x2="${X(c)}" y2="${X(d)}"/>`;
+  let h='';
+  for(let n=0;n<5;n++)h+=line(0,n,4,n)+line(n,0,n,4);          // rows + columns
+  h+=line(0,0,4,4)+line(0,4,4,0)+line(2,0,4,2)+line(4,2,2,4)+line(2,4,0,2)+line(0,2,2,0); // diagonals + diamond
+  for(let r=0;r<5;r++)for(let c=0;c<5;c++)h+=`<circle class="pt" cx="${X(c)}" cy="${X(r)}" r="1.1"/>`;
+  for(let c=0;c<5;c++)h+=`<text class="lbl" x="${X(c)}" y="92.5">${'abcde'[c]}</text>`;
+  for(let r=0;r<5;r++)h+=`<text class="lbl" x="8" y="${X(r)}">${5-r}</text>`;
+  // Aristotle's diagram: the board's outer square carries the four qualities at its corners,
+  // the inscribed diamond (edge midpoints) carries the four elements at its vertices.
+  h+=`<text class="el" x="50" y="4">FIRE</text><text class="el" x="50" y="97.5">WATER</text>`;
+  h+=`<text class="el" transform="translate(97.5 50) rotate(90)">EARTH</text><text class="el" transform="translate(2.6 50) rotate(-90)">AIR</text>`;
+  h+=`<text class="ql" x="6" y="5.5">hot</text><text class="ql" x="94" y="5.5">dry</text><text class="ql" x="94" y="95">cold</text><text class="ql" x="6" y="95">wet</text>`;
+  svg.innerHTML=h;board.insertBefore(svg,fx);
+}
+
+function genMoves(b,side){
+  if(RULES.graph)return genMovesALQ(b,side);
+  let caps=[],simple=[];
+  for(let i=0;i<BOARD.CELLS;i++){
+    const v=b[i];if(!v||sideOf(v)!==side)continue;
+    caps=caps.concat(jumps(b,i,side));
+    if(caps.length)continue;
+    const r=rowOf(i),c=colOf(i);
+    for(const[dr,dc]of((isKing(v)||RULES.menBack)?allDirs():(side===SIDE.THOTH?DU:DD))){
+      let r2=r+dr,c2=c+dc;
+      while(onBoard(r2,c2)&&b[idxOf(r2,c2)]===0){
+        simple.push({from:i,path:[idxOf(r2,c2)],caps:[]});
+        if(!(RULES.flying&&isKing(v)))break; // flying kings keep sliding; men (and American kings) take one step
+        r2+=dr;c2+=dc;
+      }
+    }
+  }
+  return caps.length?caps:simple;
+}
+function applyMove(b,m){
+  const nb=b.slice();let v=nb[m.from];nb[m.from]=0;
+  m.caps.forEach(x=>nb[x]=0);
+  const d=m.path[m.path.length-1];
+  // crowns if the move touched the far row at any point (Russian: crowning mid-capture)
+  if(v===PIECE.THOTH_MAN&&m.path.some(p=>crownAt(SIDE.THOTH,rowOf(p),colOf(p))))v=PIECE.THOTH_KING;
+  if(v===PIECE.KHONSU_MAN&&m.path.some(p=>crownAt(SIDE.KHONSU,rowOf(p),colOf(p))))v=PIECE.KHONSU_KING;
+  nb[d]=v;return nb;
+}
+function evalHEX(b){
+  let s=0;
+  for(let i=0;i<CELLS;i++){
+    const v=b[i];if(!v)continue;
+    const r=rowOf(i),c=colOf(i),sd=sideOf(v);
+    let x=isKing(v)?RULES.kingValue:EVAL.MAN_VALUE;
+    if(!isKing(v))x+=(sd===SIDE.THOTH?(r+c):(16-r-c))*2;
+    const dr=r-4,dc=c-4,hd=Math.max(Math.abs(dr),Math.abs(dc),Math.abs(dr-dc));
+    x+=(4-hd)*2;
+    s+=sd*x;
+  }
+  return s;
+}
+function evalB(b){
+  if(RULES.graph)return evalALQ(b);
+  if(RULES.hex)return evalHEX(b);
+  let s=0;
+  for(let i=0;i<BOARD.CELLS;i++){
+    const v=b[i];if(!v)continue;
+    const r=rowOf(i),c=colOf(i),sd=sideOf(v);
+    let x=isKing(v)?RULES.kingValue:EVAL.MAN_VALUE;
+    if(!isKing(v))x+=(sd===SIDE.THOTH?(N-1-r):r)*EVAL.ADVANCE_WEIGHT;
+    if(c>=2&&c<=N-3&&r>=2&&r<=N-3)x+=EVAL.CENTER_BONUS;
+    if(!isKing(v)&&((sd===SIDE.THOTH&&r===N-1)||(sd===SIDE.KHONSU&&r===0)))x+=EVAL.BACK_ROW_BONUS;
+    if(c===0||c===N-1)x-=EVAL.EDGE_PENALTY;
+    s+=sd*x;
+  }
+  return s;
+}
+function negamax(b,side,depth,alpha,beta){
+  const moves=genMoves(b,side);
+  if(!moves.length)return-(10000+depth);
+  if(depth<=0&&!(moves[0].caps.length&&depth>-6))return side*evalB(b);
+  let best=-Infinity;
+  for(const m of moves){
+    const s=-negamax(applyMove(b,m),-side,depth-1,-beta,-alpha);
+    if(s>best)best=s;if(best>alpha)alpha=best;if(alpha>=beta)break;
+  }
+  return best;
+}
+// { id, name, depth, blunder } — depth = search plies, blunder = chance of a random legal move
+const LEVELS=[
+  {id:0,name:'Scribe',depth:3,blunder:.25},
+  {id:1,name:'Vizier',depth:5,blunder:.10},
+  {id:2,name:'Pharaoh',depth:7,blunder:0}
+];
+function chooseAI(b,lvl){
+  const moves=genMoves(b,SIDE.KHONSU);
+  if(moves.length===1)return moves[0];
+  if(rng()<lvl.blunder)return rnd(moves);
+  let best=-Infinity,pool=[];
+  for(const m of moves){
+    const s=-negamax(applyMove(b,m),SIDE.THOTH,Math.max(1,lvl.depth+RULES.depthAdj)-1,-Infinity,Infinity)+rng()*1.5;
+    if(s>best+.0001){best=s;pool=[m];}else if(Math.abs(s-best)<=.0001)pool.push(m);
+  }
+  return rnd(pool);
+}
+const count=(b,side)=>b.reduce((n,v)=>n+(Math.sign(v)===side?1:0),0);
+
+/* ---------- UI state ---------- */
+const board=$('#board'),fx=$('#fx'),pcs=$('#pcs');
+/* hex board: flat-top cells, 9 columns; centre of cell (r,c) in 0..100 board units */
+const HEX_S=5.4,HEX_H=Math.sqrt(3)*HEX_S;
+const hexCenter=(r,c)=>({x:50+((c-r))*1.5*HEX_S,y:50+4*HEX_H-(r+c)*(HEX_H/2)});
+function buildHexSvg(){
+  const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');
+  svg.setAttribute('viewBox','0 0 100 100');svg.setAttribute('class','hex-svg');svg.setAttribute('aria-hidden','true');
+  let h='';
+  const poly=(cx,cy)=>{let p=[];for(let k=0;k<6;k++){const a=Math.PI/3*k;p.push((cx+HEX_S*Math.cos(a)).toFixed(2)+','+(cy+HEX_S*Math.sin(a)).toFixed(2));}return p.join(' ');};
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+    if(Math.abs(r-c)>4)continue;
+    const{x,y}=hexCenter(r,c),tone=((r-c)%3+3)%3;
+    h+=`<polygon class="hx t${tone}" points="${poly(x,y)}"/>`;
+  }
+  // coordinate labels just outside the edge cells (letters: lower-left + upper-left sides, numbers: lower-right + upper-right)
+  const out=(x,y,k)=>{const dx=x-50,dy=y-50,d=Math.hypot(dx,dy)||1,e=d+HEX_H*0.78;return[50+dx/d*e,50+dy/d*e];};
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+    if(Math.abs(r-c)>4)continue;
+    const{x,y}=hexCenter(r,c);
+    const tip=(r===0&&c===0)?3:0; // the bottom tip carries both labels: split them left/right
+    if(c===0||c-r===-4){const[lx,ly]=out(x,y);h+=`<text class="lbl" x="${(lx-tip).toFixed(1)}" y="${ly.toFixed(1)}">${'abcdefghi'[r]}</text>`;}
+    if(r===0||c-r===4){const[lx,ly]=out(x,y);h+=`<text class="lbl" x="${(lx+tip).toFixed(1)}" y="${ly.toFixed(1)}">${c+1}</text>`;}
+  }
+  svg.innerHTML=h;board.insertBefore(svg,fx);
+}
+function rebuildBoardDom(){
+  board.querySelectorAll('.sq,.alq-svg,.hex-svg').forEach(e=>e.remove());
+  pcs.innerHTML='';fx.innerHTML='';
+  board.classList.toggle('alq',!!RULES.graph);board.classList.toggle('hex',!!RULES.hex);
+  board.style.setProperty('--cw',(RULES.graph?12:RULES.hex?8.6:100/N)+'%');
+  if(RULES.graph){buildAlqSvg();return;}
+  if(RULES.hex){buildHexSvg();return;}
+  board.style.gridTemplate=`repeat(${N},1fr)/repeat(${N},1fr)`;
+  for(let i=0;i<CELLS;i++){const d=document.createElement('div');d.className='sq '+((rowOf(i)+colOf(i))%2?'d':'l');board.insertBefore(d,fx);}
+}
+rebuildBoardDom();
+// GameState (board + move flow) — session/menu flags kept here too for now,
+// since splitting them into a separate object would touch every call site;
+// documented instead so the boundary is clear for a future pass.
+let S={
+  b:[],ids:[],                 // board contents + per-cell piece-id map
+  turn:SIDE.THOTH,busy:false,over:false,
+  sel:null,cur:[],lock:false,moves:[],   // selection / in-progress multi-jump
+  gid:0,                        // game id — invalidates any in-flight AI turn from a stale game
+  noProg:0,                     // moves since last capture/advance (draw detector)
+  level:1,from:-1,capN:0,
+  menuShown:false,difficultySelected:false  // start-menu / roguelike-run flags
+};
+let achievements={range:false,promotion:false,winner:false,thriceGreat:false,wisest:false};
+let beatenDifficulties=new Set();
+const els={};
+let won=storage.getNumber(STORAGE_KEYS.RUN_WINS,0);
+let bestRunWins=storage.getNumber(STORAGE_KEYS.BEST_RUN_WINS,0); // best round ever reached, across all sessions and difficulties
+let moveStops=[]; // landing squares of the move currently being made (start + every jump/step)
+let moveLogCount=0; // full-move number shown in the log, increments on each Thoth move
+
+const place=(el,i)=>{
+  if(RULES.graph){el.style.left=(11+colOf(i)*16.5)+'%';el.style.top=(11+rowOf(i)*16.5)+'%';return;} // 12% pieces centred on points 17+16.5n %
+  if(RULES.hex){const{x,y}=hexCenter(rowOf(i),colOf(i));el.style.left=(x-4.3)+'%';el.style.top=(y-4.3)+'%';return;}
+  el.style.left=colOf(i)*100/N+'%';el.style.top=rowOf(i)*100/N+'%';
+};
+const setStatus=t=>{$('#status').textContent=t};
+function mkPiece(id,v,i){
+  const el=document.createElement('div');
+  el.className='piece '+(v>0?'T':'K')+(Math.abs(v)===2?' king':'');
+  el.innerHTML='<i class="under"></i><i class="body"></i>';
+  place(el,i);pcs.appendChild(el);els[id]=el;
+}
+
+function returnToTitleScreen(){
+  S.difficultySelected=false;
+  $('#startMenuOverlay').classList.remove('show');
+  $('#titleScreen').classList.remove('hide');
+}
+function newGameConfirm(){
+  // Only ask for confirmation if a game is actually in progress
+  if(!S.menuShown || S.over){
+    // Game hasn't started or is already over, just go to the main menu
+    returnToTitleScreen();
+    return;
+  }
+  // Ask for confirmation
+  dialog({
+    title:'Abandon the Game?',
+    icon:'q',
+    ic:'?',
+    html:'<p>Are you sure you want to start over? Your current game will be lost.</p>',
+    buttons:[['Start Over',1],['Keep Playing',0,true]]
+  }).then(confirmed=>{
+    if(confirmed)returnToTitleScreen();
+  });
+}
+function changeThemeConfirm(){
+  // The theme is deliberately locked for the session (Kemetic vs Hellenic
+  // isn't a quick toggle) — the only way back to pick a different one is
+  // a full, confirmed return to the title screen.
+  dialog({
+    title:'Change Theme?',
+    icon:'q',
+    ic:'?',
+    html:'<p>Return to the title screen to pick a different theme? Your current run will be lost.</p>',
+    buttons:[['Change Theme',1],['Cancel',0,true]]
+  }).then(confirmed=>{
+    if(confirmed)returnToTitleScreen();
+  });
+}
+
+function showStartMenu(){
+  // Reaching the difficulty-selection screen always means a fresh run —
+  // there is no "resume" feature, so the Duat Run counter resets here,
+  // covering New Game, a loss, a full victory, and a fresh page load
+  // that inherited a stale count from a run that was never finished.
+  won=0;renderBorn(0);storage.set(mkey(STORAGE_KEYS.RUN_WINS),0);
+  S.menuShown=true;S.difficultySelected=false;
+  const overlay=$('#startMenuOverlay');
+  const buttons=$('#difficultyButtons');
+  buttons.innerHTML='';
+  
+  // Portrait, subtitle, and myth blurb all follow the active theme
+  const c=$('#startMenuThoth');
+  if(c)THEME.drawPortraitT(c);
+  const sub=$('#startMenuSubtitle');
+  if(sub)sub.innerHTML=THEME.difficultySubtitle;
+  const mythEl=$('#startMenuMyth');
+  if(mythEl)mythEl.innerHTML=THEME.titleMyth;
+  
+  // Create difficulty buttons, named per the active theme
+  LEVELS.forEach((level,i)=>{
+    const btn=document.createElement('button');
+    btn.className='startmenu-btn';
+    btn.textContent=`${THEME.difficultyNames[i].toUpperCase()} (${['Easy','Medium','Hard'][i]})`;
+    btn.dataset.level=i;
+    btn.onclick=()=>{SFX.click();selectDifficulty(i,btn)};
+    buttons.appendChild(btn);
+  });
+  const dlcBtn=document.createElement('button');
+  dlcBtn.className='startmenu-btn dlc-btn';dlcBtn.id='dlcModesBtn';
+  dlcBtn.textContent=RULES.id==='american'?'𓂀 DLC MODES':'𓂀 DLC: '+RULES.name.toUpperCase();
+  dlcBtn.onclick=()=>{SFX.click();openDlcModes()};
+  buttons.appendChild(dlcBtn);
+  
+  overlay.classList.add('show');
+}
+
+function selectDifficulty(level,btn){
+  S.level=level;
+  S.difficultySelected=true;
+  
+  // Update button styling
+  document.querySelectorAll('.startmenu-btn').forEach(b=>{
+    b.classList.toggle('selected',b===btn);
+  });
+  
+  // Show play button if not already there
+  let playBtn=document.getElementById('startMenuPlayBtn');
+  if(!playBtn){
+    playBtn=document.createElement('button');
+    playBtn.id='startMenuPlayBtn';
+    playBtn.className='startmenu-btn startmenu-play';
+    playBtn.textContent='PLAY';
+    playBtn.onclick=()=>{SFX.click();startGameFromMenu()};
+    const wrap=document.getElementById('difficultyButtons'),dlcB=document.getElementById('dlcModesBtn');
+    wrap.insertBefore(playBtn,dlcB||null);
+  }
+}
+
+function startGameFromMenu(){
+  const overlay=$('#startMenuOverlay');
+  overlay.classList.remove('show');
+  S.menuShown=true;
+  setLevel(S.level);
+  renderBorn(won);
+  layout();
+  newGame();
+  showTab('game');
+}
+
+function newGame(){
+  S.gid++;S.b=new Array(CELLS).fill(0);S.ids=new Array(CELLS).fill(-1);
+  pcs.innerHTML='';fx.innerHTML='';Object.keys(els).forEach(k=>delete els[k]);
+  let id=0;
+  if(RULES.hex){
+    // Hexdame: two 4x4 rhombi of 16, facing each other (axial coords 0..3 vs 5..8)
+    for(let r=0;r<9;r++)for(let c=0;c<9;c++){
+      if(!onBoard(r,c))continue;
+      const i=idxOf(r,c);let v=0;
+      if(r<=3&&c<=3)v=1;else if(r>=5&&c>=5)v=-1;
+      if(v){S.b[i]=v;S.ids[i]=id;mkPiece(id++,v,i);}
+    }
+  }else if(RULES.graph){
+    // 12 each: the two nearest rows + the two points of the middle row on that side; centre empty
+    for(let r=0;r<5;r++)for(let c=0;c<5;c++){
+      const i=idxOf(r,c);let v=0;
+      if(r<2||(r===2&&c<2))v=-1;else if(r>2||(r===2&&c>2))v=1;
+      if(v){S.b[i]=v;S.ids[i]=id;mkPiece(id++,v,i);}
+    }
+  }else
+  for(let i=0;i<CELLS;i++){
+    const r=rowOf(i),c=colOf(i);if((r+c)%2!==1)continue;
+    const rows=RULES.rows||3;
+    if(r<rows){S.b[i]=-1;S.ids[i]=id;mkPiece(id++,-1,i);}
+    else if(r>=N-rows){S.b[i]=1;S.ids[i]=id;mkPiece(id++,1,i);}
+  }
+  // Within a Duat Run: rounds 1, 3, 5 the player moves first; rounds 2, 4 the moon does.
+  const roundNum=won+1,cpuFirst=roundNum%2===0,firstTurn=cpuFirst?SIDE.KHONSU:SIDE.THOTH;
+  Object.assign(S,{turn:firstTurn,busy:false,over:false,sel:null,cur:[],lock:false,noProg:0,from:-1});
+  updateNoProgCountdown();
+  S.moves=genMoves(S.b,firstTurn);
+  moveStops=[];
+  resetMoveLog();
+  updateNoProgCountdown();
+  updateHUD(true);updateMust();
+  if(cpuFirst){
+    setStatus(`${THEME.opponentName} moves first this round…`);
+    say('K',THEME.openingK,3200);
+    setTimeout(()=>say('T',THEME.openingT,3200),1200);
+    aiTurn();
+  }else{
+    setStatus(`Your move, ${THEME.playerName}. Blue moves first.`);
+    say('T',THEME.openingT,3200);
+    setTimeout(()=>say('K',THEME.openingK,3200),1200);
+  }
+}
+function updateHUD(quiet){
+  const t=count(S.b,1),k=count(S.b,-1),f=(t+k)?k/(t+k):.5;
+  $('#nT').textContent=`${t} piece${t===1?'':'s'} · you`;
+  $('#nK').textContent=`${k} piece${k===1?'':'s'} · moon`;
+  drawMoonPhase($('#moon'),f);
+  $('#mtxt').textContent=`${THEME.opponentName} ${Math.round(f*100)}%`;
+  $('#cardT').classList.toggle('turn',S.turn===1&&!S.over);
+  $('#cardK').classList.toggle('turn',S.turn===-1&&!S.over);
+  if(!quiet){const mb=$('#moonbox');mb.classList.remove('pulse');void mb.offsetWidth;mb.classList.add('pulse');}
+}
+function updateMust(){
+  Object.values(els).forEach(e=>e.classList.remove('must'));
+  if(S.turn!==1||S.over||S.lock||!S.moves.length||!S.moves[0].caps.length)return;
+  new Set(S.moves.map(m=>m.from)).forEach(i=>els[S.ids[i]]&&els[S.ids[i]].classList.add('must'));
+}
+function showMarks(){
+  fx.querySelectorAll('.sel,.dest,.cap').forEach(e=>e.remove());
+  Object.values(els).forEach(e=>e.classList.remove('sel'));
+  if(S.sel!==null){
+    const add=(i,c)=>{const d=document.createElement('div');d.className='cellfx '+c;place(d,i);fx.appendChild(d);};
+    add(S.sel,'sel');
+    els[S.ids[S.sel]]&&els[S.ids[S.sel]].classList.add('sel');
+    new Map(S.cur.map(m=>[m.path[0],m.caps.length?'cap':'dest'])).forEach((c,i)=>add(i,c));
+  }
+}
+function showLast(a,b){
+  fx.querySelectorAll('.last').forEach(e=>e.remove());
+  [a,b].forEach(i=>{if(i<0)return;const d=document.createElement('div');d.className='cellfx last';place(d,i);fx.insertBefore(d,fx.firstChild);});
+}
+
+/* speech bubbles */
+const bt={};
+function say(who,text,ms){
+  const b=$('#b'+who);b.textContent=text;b.classList.remove('on');void b.offsetWidth;b.classList.add('on');
+  clearTimeout(bt[who]);bt[who]=setTimeout(()=>b.classList.remove('on'),ms||2600);
+}
+/* ---------- move execution ---------- */
+function doStep(from,to,cap){
+  const id=S.ids[from];
+  S.b[to]=S.b[from];S.b[from]=0;S.ids[to]=id;S.ids[from]=-1;
+  place(els[id],to);
+  moveStops.push(to);
+  if(cap>=0){
+    const side=Math.sign(S.b[cap]),cid=S.ids[cap];
+    S.b[cap]=0;S.ids[cap]=-1;S.capN++;
+    const e=els[cid];e.classList.add('dying');setTimeout(()=>e.remove(),380);delete els[cid];
+    SFX.cap();updateHUD();
+    if(side===SIDE.KHONSU){say('K',rnd(L.kLose),2200);if(rng()<.7)say('T',rnd(L.tCap),2400);}
+    else{say('T',rnd(L.tLose),2200);if(rng()<.7)say('K',rnd(L.kCap),2400);}
+  }else SFX.move();
+}
+function endGame(kind){
+  S.over=true;S.busy=false;updateHUD(true);updateMust();showMarks();
+  if(kind==='T'){
+    SFX.win();say('T',"The year grows five days longer!",4000);say('K',"The night is... not mine.",4000);
+    won++;const full=won>=5;
+    if(RULES.id==='american')unlockMysteriesForRound(won); // base game only: round 2 -> To Know ... round 5 -> To Keep Silent
+    storage.set(mkey(STORAGE_KEYS.RUN_WINS),full?0:won);
+    // Achievement tracking — only counts when the full 5-win run is actually complete,
+    // not on every individual round win.
+    if(full){
+      unlockAchievement('winner','Winner','Beat the game');
+      beatenDifficulties.add(S.level);
+      storage.set(mkey(STORAGE_KEYS.BEATEN_DIFFICULTY_PREFIX+S.level),'true');
+      if(beatenDifficulties.size===3){
+        unlockAchievement('thriceGreat','Thrice Great','Beat the game on all three difficulties');
+      }
+    }
+    const nm=THEME.bornNames[Math.min(won,5)-1];
+    setStatus(`${THEME.playerName} wins a portion of the moonlight!`);renderBorn(full?5:won);
+    dialog({title:'Game Over',icon:'gold',ic:'☥',html:full
+      ?`<p><b>The year is complete!</b></p><p>${THEME.playerName} has won all five days. ${THEME.mother} is freed from the curse and bears her children on the days between the years: <b>${THEME.bornNames.join(', ').replace(/, ([^,]*)$/,' and $1')}</b>.</p><p style="margin-top:12px;font-size:11px;color:#999"><b>Duat Conquered: 5/5</b></p>`
+      :`<p><b>Night conquered!</b></p><p>${THEME.opponentName} yields a sliver of moonlight, and a new day is born outside the calendar. On it ${THEME.mother} bears <b>${nm}</b>.</p><p style="margin-top:8px;color:#999;font-size:11px"><b>Duat Run: ${won}/5</b></p>`,
+      buttons:[full?['Return to Start',1,true]:['Next Challenge',1,true]]}).then(()=>{
+        if(full){S.difficultySelected=false;showStartMenu();}
+        else newGame();
+      });
+  }else if(kind==='K'){
+    SFX.lose();say('K',"The night is mine.",4000);say('T',"I shall return, Moon.",4000);
+    setStatus(`${THEME.opponentName} keeps its light.`);
+    dialog({title:'Game Over',icon:'q',ic:'☾',html:`<p><b>${THEME.opponentName} wins.</b></p><p>The moon keeps its light. Your run ends here. You had won ${won} night${won!==1?'s':''} against the moon.</p><p style="margin-top:8px;color:#999;font-size:11px"><b>Duat Run: ${won}/5</b></p>`,buttons:[['Return to Start',1,true]]}).then(v=>{if(v){S.difficultySelected=false;showStartMenu();}});
+  }else{
+    setStatus('Stalemate. The moon holds steady.');
+    dialog({title:'Game Over',icon:'q',ic:'☾',html:`<p><b>Stalemate.</b></p><p>Forty moves passed without a single capture or promotion. Neither god gives up a sliver of light — the standoff counts against you. Your run ends here. You had won ${won} night${won!==1?'s':''} against the moon.</p><p style="margin-top:8px;color:#999;font-size:11px"><b>Duat Run: ${won}/5</b></p>`,buttons:[['Return to Start',1,true]]}).then(()=>{S.difficultySelected=false;showStartMenu();});
+  }
+}
+function logMove(mover){
+  const log=$('#moveLog');if(!log)return;
+  const empty=log.querySelector('.movelog-empty');if(empty)empty.remove();
+  const sep=S.capN>0?'x':'-';
+  const notation=moveStops.map(coordLabel).join(sep);
+  const isThoth=mover===SIDE.THOTH;
+  if(isThoth)moveLogCount++;
+  const row=document.createElement('div');
+  row.className='movelog-row';
+  row.innerHTML=`<span class="movelog-num">${isThoth?moveLogCount+'.':''}</span><span class="movelog-side ${isThoth?'t':'k'}">${isThoth?'T':'K'}</span><span class="movelog-note">${S.capN>0?`<span class="movelog-cap">${esc(notation)}</span>`:esc(notation)}</span>`;
+  log.appendChild(row);
+  log.scrollTop=log.scrollHeight;
+}
+function resetMoveLog(){
+  moveLogCount=0;
+  const log=$('#moveLog');
+  if(log)log.innerHTML='<div class="movelog-empty">No moves yet.</div>';
+}
+function updateNoProgCountdown(){
+  const panel=$('#noProgPanel'),text=$('#noProgText');
+  if(!text)return;
+  const movesLeft=Math.max(0,40-Math.ceil(S.noProg/2));
+  text.textContent=movesLeft+(movesLeft===1?' move':' moves');
+  if(panel)panel.classList.toggle('warn',movesLeft<=10);
+}
+
+function finish(mover,dest){
+  let v=S.b[dest];
+  let promoted=false;
+  if(v===PIECE.THOTH_MAN&&moveStops.some(p=>crownAt(SIDE.THOTH,rowOf(p),colOf(p)))){S.b[dest]=PIECE.THOTH_KING;crown(dest,'T');promoted=true;}
+  if(v===PIECE.KHONSU_MAN&&moveStops.some(p=>crownAt(SIDE.KHONSU,rowOf(p),colOf(p)))){S.b[dest]=PIECE.KHONSU_KING;crown(dest,'K');promoted=true;}
+  showLast(S.from,dest);
+  // Range achievement: 2+ captures completed in a single move, by the player only
+  if(S.capN>=2 && S.turn===SIDE.THOTH)unlockAchievement('range','Range','Capture twice in a single move');
+  logMove(mover);
+  S.noProg=(S.capN>0||promoted)?0:S.noProg+1; // resets on a capture or a promotion; any other move counts toward stalemate
+  updateNoProgCountdown();
+  S.turn=-mover;S.moves=genMoves(S.b,S.turn);
+  updateHUD(true);
+  if(!S.moves.length)return endGame(mover===SIDE.THOTH?'T':'K');
+  if(S.noProg>=80)return endGame('D');
+  if(S.turn===SIDE.THOTH){
+    S.busy=false;updateMust();
+    setStatus(S.moves[0].caps.length?`Your move, ${THEME.playerName}. A capture is mandatory.`:`Your move, ${THEME.playerName}.`);
+  }else aiTurn();
+}
+function crown(i,side){
+  const e=els[S.ids[i]];e.classList.add('king','crowned');SFX.king();
+  if(side==='T')unlockAchievement('promotion','Promotion','Promote your piece to a king');
+  say(side,rnd(side==='T'?L.tKing:L.kKing),2200);
+}
+async function aiTurn(){
+  const gid=S.gid;S.busy=true;updateMust();
+  setStatus(`${THEME.opponentName} ponders under the moon…`);
+  await sleep(600);if(gid!==S.gid)return;
+  const m=chooseAI(S.b,LEVELS[S.level]);
+  S.from=m.from;S.capN=0;
+  moveStops=[m.from];
+  let cur=m.from;
+  for(let i=0;i<m.path.length;i++){
+    doStep(cur,m.path[i],m.caps.length?m.caps[i]:-1);cur=m.path[i];
+    await sleep(m.caps.length?460:260);if(gid!==S.gid)return;
+  }
+  finish(-1,cur);
+}
+function humanStep(cands,to){
+  S.busy=true;
+  const from=S.sel;
+  if(!S.lock){S.from=from;S.capN=0;moveStops=[from];}
+  doStep(from,to,cands[0].caps.length?cands[0].caps[0]:-1);
+  const rem=cands.map(m=>({from:to,path:m.path.slice(1),caps:m.caps.slice(1)}));
+  if(!rem[0].path.length){
+    S.sel=null;S.cur=[];S.lock=false;showMarks();
+    const gid=S.gid;setTimeout(()=>{if(gid===S.gid)finish(1,to)},300);
+  }else{
+    S.cur=rem;S.sel=to;S.lock=true;showMarks();S.busy=false;
+    setStatus('Keep jumping! Another capture is available.');
+  }
+}
+function onCell(i){
+  if(S.busy||S.over||S.turn!==1)return;
+  const v=S.b[i];
+  if(v>0&&!S.lock){
+    const mine=S.moves.filter(m=>m.from===i);
+    if(mine.length){S.sel=i;S.cur=mine;showMarks();SFX.sel();}
+    else{
+      S.sel=null;S.cur=[];showMarks();SFX.err();
+      setStatus(S.moves[0]&&S.moves[0].caps.length?'A capture is mandatory. Pieces glowing red must jump.':'That piece has no legal move.');
+    }
+    return;
+  }
+  if(S.sel!==null){
+    const c=S.cur.filter(m=>m.path[0]===i);
+    if(c.length)return humanStep(c,i);
+  }
+  if(!S.lock){S.sel=null;S.cur=[];showMarks();}
+}
+board.addEventListener('click',e=>{
+  const r=board.getBoundingClientRect();
+  if(RULES.graph){
+    const px=(e.clientX-r.left)/r.width*100,py=(e.clientY-r.top)/r.height*100;
+    const c=Math.round((px-17)/16.5),rw=Math.round((py-17)/16.5);
+    if(!alqOn(rw,c)||Math.hypot(px-(17+c*16.5),py-(17+rw*16.5))>8.5)return; // tap must land near a point
+    return onCell(rw*8+c);
+  }
+  if(RULES.hex){
+    const px=(e.clientX-r.left)/r.width*100,py=(e.clientY-r.top)/r.height*100;
+    let best=-1,bd=1e9;
+    for(let a=0;a<9;a++)for(let b2=0;b2<9;b2++){
+      if(!onBoard(a,b2))continue;
+      const{x,y}=hexCenter(a,b2),d=Math.hypot(px-x,py-y);
+      if(d<bd){bd=d;best=idxOf(a,b2);}
+    }
+    if(best>=0&&bd<=HEX_S*0.95)onCell(best);
+    return;
+  }
+  const c=Math.floor((e.clientX-r.left)/r.width*N),rw=Math.floor((e.clientY-r.top)/r.height*N);
+  if(c<0||c>=N||rw<0||rw>=N)return;
+  onCell(rw*N+c);
+});
+
+/* ---------- born-days tracker ---------- */
+function renderBorn(n){
+  const s=$('#slots');s.innerHTML='';
+  THEME.slotCodes.forEach((ch,i)=>{const d=document.createElement('div');d.className='slot'+(i<n?' on':'');d.textContent=ch;d.title=THEME.bornNames[i];s.appendChild(d);});
+  $('#bornTxt').textContent=`${n} of 5`;
+  // Update streak display stars
+  const stars=document.querySelectorAll('.star');
+  if(stars&&stars.length){
+    for(let i=0;i<5;i++){
+      if(stars[i])stars[i].style.background=i<n?'#f2c230':'#666';
+    }
+  }
+  // Update streak text
+  const streakText=$('#streakText');
+  if(streakText)streakText.textContent=`DUAT RUN: ${n}/5`;
+  // Track the all-time best round reached, across every session and difficulty —
+  // this is what the Winner achievement bar shows, not the current run's live count,
+  // so it survives a loss and isn't difficulty-specific.
+  if(n>bestRunWins){bestRunWins=n;storage.set(mkey(STORAGE_KEYS.BEST_RUN_WINS),bestRunWins);}
+  // Keep the Winner achievement's progress bar in sync with every win-count change
+  updateAchievementsDisplay();
+}
+
+/* ---------- XP dialogs + menus ---------- */
+const layerEl=$('#layer');
+function dialog({title,icon,ic,html,buttons,wide}){
+  return new Promise(res=>{
+    closeMenus();
+    const m=document.createElement('div');m.className='modal';
+    m.innerHTML=`<div class="dlg" role="dialog" aria-label="${title}"><div class="titlebar"><span class="tt">${title}</span><button class="tbtn x" aria-label="Close">✕</button></div><div class="dbody"><div class="dicon ${icon||''}">${ic||'i'}</div><div class="dtxt">${html}</div></div><div class="dfoot"></div></div>`;
+    const done=v=>{m.remove();res(v)};
+    m.querySelector('.tbtn').onclick=()=>done(0);
+    const foot=m.querySelector('.dfoot');
+    (buttons||[['OK',1,true]]).forEach(([t,v,def])=>{const b=document.createElement('button');b.className='xpbtn'+(def?' def':'');b.textContent=t;b.onclick=()=>done(v);foot.appendChild(b);});
+    layerEl.appendChild(m);
+    const d=foot.querySelector('.def');if(d)d.focus();
+  });
+}
+/* ---------- content/board-themes: selectable square color schemes ---------- */
+/* ---------- content/game-themes: Kemetic vs Hellenic skin data ----------
+   Same game, same rules, same AI, same achievements — this object only
+   supplies display text, dialogue, myth content, portrait art and the
+   piece icon. Nothing here is read by rules.js/ai.js. Achievements and
+   run history are intentionally theme-agnostic (see STORAGE_KEYS) so
+   progress made under one theme counts under the other. */
+const GAME_THEMES={
+  kemetic:{
+    id:'kemetic',label:'Kemetic',
+    playerName:'Thoth',playerEpithet:'Djehuty, Lord of Writing',
+    opponentName:'Khonsu',opponentEpithet:'The Wanderer, Moon God',
+    mother:'Nut',
+    pieceIcon:'ankh',
+    difficultyNames:['Scribe','Vizier','Pharaoh'],
+    bornNames:['Osiris','Horus the Elder','Set','Isis','Nephthys'],
+    slotCodes:['O','H','S','I','N'],
+    titleMyth:`<p>Ra cursed Nut, the sky goddess, that she could not bear children on any day of the year. Thoth, god of writing and wisdom, wagered with Khonsu, god of the moon...</p>`,
+    difficultySubtitle:'Play against Khonsu,<br>God of the Moon',
+    rulesIntro:'You play <b>Thoth</b> (blue). Khonsu (silver) plays the moon. Blue moves first, and only the dark squares are used.',
+    moonRule:'The moon shows how much light Khonsu still holds. Every capture shifts the balance.',
+    myth:`<p>Ra cursed the sky goddess Nut so she could not bear children on any day of the year. Thoth, god of writing and reckoning, took pity on her.</p>
+<p>He challenged the moon to a game of draughts and won a small share of its light in every round. Those slivers were stitched into five extra days, outside the 360-day calendar, and on them Nut gave birth to <b>Osiris, Horus the Elder, Set, Isis and Nephthys</b>.</p>
+<p>That is why the moon never again shines at full strength every night.</p>
+<p><small>The tale survives in Plutarch's <i>On Isis and Osiris</i>, which names Hermes (Thoth) and Selene. Khonsu is the Egyptian moon god. Ancient game boards for this kind of contest were usually senet boards.</small></p>`,
+    aboutBlurb:'American draughts with forced captures, dressed in Windows XP and 8-bit pixels. Thoth versus Khonsu, with the moon as the stake.',
+    startmenuLabel:'Djehuty',
+    dialogue:{
+      tCap:["So it is written.","A little light for Nut.","Ma'at guides my hand.","The ibis sees all."],
+      kCap:["The moon reclaims its own.","You cannot outwit the sky.","Wax on!"],
+      tLose:["Well played, Moon.","Noted in the record."],
+      kLose:["My light... it wanes.","A sliver, taken."],
+      tKing:["The scribe ascends!"],
+      kKing:["Crowned in silver light!"]
+    },
+    openingT:'Wager accepted, Moon. Let the game be written.',
+    openingK:'Play, scribe. My light is not cheap.',
+    roundWinK:'The night is mine.',
+    roundWinT:'I shall return, Moon.',
+    drawPortraitT:(c)=>drawThoth(c),
+    drawPortraitK:(c)=>drawKhonsu(c)
+  },
+  hellenic:{
+    id:'hellenic',label:'Hellenic',
+    playerName:'Hermes',playerEpithet:'Herald of Olympus',
+    opponentName:'Selene',opponentEpithet:'Titaness of the Moon',
+    mother:'Rhea',
+    pieceIcon:'mercury',
+    difficultyNames:['Grammateus','Archon','Basileus'],
+    bornNames:['Hades','Zeus','Typhon','Demeter','Hecate'],
+    slotCodes:['Ha','Ze','Ty','De','He'],
+    titleMyth:`<p>Helios cursed Rhea, mother of the gods, that she could not bear children on any day of the year. Hermes, herald and trickster of Olympus, wagered with Selene, goddess of the moon...</p>`,
+    difficultySubtitle:'Play against Selene,<br>Goddess of the Moon',
+    rulesIntro:'You play <b>Hermes</b> (blue). Selene (silver) plays the moon. Blue moves first, and only the dark squares are used.',
+    moonRule:'The moon shows how much light Selene still holds. Every capture shifts the balance.',
+    myth:`<p>Helios cursed Rhea, mother of the gods, so she could not bear children on any day of the year. Hermes, herald and trickster of Olympus, took pity on her.</p>
+<p>He challenged the moon to a game of draughts and won a small share of its light in every round. Those slivers were stitched into five extra days, outside the calendar, and on them Rhea gave birth to <b>Hades, Zeus, Typhon, Demeter and Hecate</b>.</p>
+<p>That is why the moon never again shines at full strength every night.</p>
+<p><small>This is the Greek telling of the same tale. Plutarch's <i>On Isis and Osiris</i> names Hermes and Selene directly, identifying them with Thoth and the Egyptian moon — the five days are the same days, only the names differ.</small></p>`,
+    aboutBlurb:'American draughts with forced captures, dressed in Windows XP and 8-bit pixels. Hermes versus Selene, with the moon as the stake.',
+    startmenuLabel:'Hermes',
+    dialogue:{
+      tCap:["So it is spoken.","A little light for Rhea.","Zeus guides my hand.","The winged sandal sees all."],
+      kCap:["The moon reclaims its own.","You cannot outwit the night sky.","Wax on!"],
+      tLose:["Well played, Selene.","Noted by Olympus."],
+      kLose:["My light... it wanes.","A sliver, taken."],
+      tKing:["The herald takes flight!"],
+      kKing:["Crowned in silver light!"]
+    },
+    openingT:'Wager accepted, Moon. Let the game be spoken.',
+    openingK:'Play, herald. My light is not cheap.',
+    roundWinK:'The night is mine.',
+    roundWinT:'I shall return, Moon.',
+    drawPortraitT:(c)=>drawHermes(c),
+    drawPortraitK:(c)=>drawSelene(c)
+  }
+};
+let THEME=GAME_THEMES.kemetic; // active theme; chosen on the title screen, locked until a full return to it
+let L=THEME.dialogue; // current dialogue set — reassigned by applyGameTheme()
+function applyGameTheme(id){
+  THEME=GAME_THEMES[id]||GAME_THEMES.kemetic;
+  L=THEME.dialogue;
+
+  document.title=`Lunar Myth Draughts — ${THEME.playerName} vs. ${THEME.opponentName}`;
+  const tb=$('#mainTitlebarText');if(tb)tb.textContent=`Lunar Myth Draughts — ${THEME.playerName} vs. ${THEME.opponentName}`;
+
+  const pTN=$('#plateTName'),pTE=$('#plateTEpithet'),pKN=$('#plateKName'),pKE=$('#plateKEpithet');
+  if(pTN)pTN.textContent=THEME.playerName.toUpperCase();
+  if(pTE)pTE.textContent=THEME.playerEpithet;
+  if(pKN)pKN.textContent=THEME.opponentName.toUpperCase();
+  if(pKE)pKE.textContent=THEME.opponentEpithet;
+
+  const hudT=$('#hudTName'),hudK=$('#hudKName');
+  if(hudT)hudT.textContent=THEME.playerName;
+  if(hudK)hudK.textContent=THEME.opponentName;
+
+  const bornLabel=$('#bornLabel');
+  if(bornLabel)bornLabel.textContent=`Days won for ${THEME.mother}:`;
+
+  const smhead=$('#smheadName');
+  if(smhead)smhead.textContent=THEME.startmenuLabel;
+
+  const offHint=$('#offHint');
+  if(offHint)offHint.textContent=`Click anywhere — ${THEME.opponentName} waxes again.`;
+
+  // Portraits follow the theme; the piece icon (ankh vs the Mercury glyph) is regenerated
+  // and re-applied as the --sprT custom property. Khonsu/Selene's crescent
+  // icon (--sprK) never changes, so it's left alone.
+  const cT=$('#cT'),cK=$('#cK');
+  if(cT)THEME.drawPortraitT(cT);
+  if(cK)THEME.drawPortraitK(cK);
+  const sprT=pieceSprite('T',THEME.pieceIcon).toDataURL();
+  document.documentElement.style.setProperty('--sprT',`url(${sprT})`);
+
+  updateHUD(true);
+}
+
+const BOARD_THEMES=[
+  {id:'desert',name:'Desert (Default)',light:'#ecd39a',dark:'#7b3f22'},
+  {id:'blackwhite',name:'Black & White',light:'#f4f4f0',dark:'#1a1a1a'},
+  {id:'redblack',name:'Red & Black',light:'#b33939',dark:'#1a1a1a'},
+  {id:'greenwhite',name:'Green & White',light:'#eef2e6',dark:'#2f6b3f'}
+];
+let boardTheme='desert';
+function applyBoardTheme(id){
+  const t=BOARD_THEMES.find(x=>x.id===id)||BOARD_THEMES[0];
+  boardTheme=t.id;
+  document.documentElement.style.setProperty('--sq-light',t.light);
+  document.documentElement.style.setProperty('--sq-dark',t.dark);
+  storage.set(STORAGE_KEYS.BOARD_THEME,t.id);
+}
+function loadBoardTheme(){
+  applyBoardTheme(storage.get(STORAGE_KEYS.BOARD_THEME,'desert'));
+}
+function boardThemeSwatchesHTML(){
+  return BOARD_THEMES.map(t=>`<button class="board-swatch${t.id===boardTheme?' active':''}" data-theme="${t.id}">
+      <span class="board-swatch-preview" style="background:linear-gradient(135deg,${t.light} 50%,${t.dark} 50%)"></span>
+      <span class="board-swatch-name">${esc(t.name)}</span>
+      <span class="board-swatch-check">✓</span>
+    </button>`).join('');
+}
+function showBoardThemeDialog(){
+  dialog({title:'Board Colors',icon:'',ic:'▦',html:`<p>Choose a color scheme for the board.</p><div class="board-swatches">${boardThemeSwatchesHTML()}</div>`,buttons:[['Close',0,true]]});
+  const modal=layerEl.lastElementChild;
+  if(!modal)return;
+  modal.querySelectorAll('.board-swatch').forEach(btn=>{
+    btn.onclick=()=>{
+      SFX.click();
+      applyBoardTheme(btn.dataset.theme);
+      modal.querySelectorAll('.board-swatch').forEach(b=>b.classList.toggle('active',b===btn));
+    };
+  });
+}
+
+// Built fresh from THEME every time the dialog opens, so it always matches
+// whichever theme is currently locked in for the session.
+function getRulesHtml(){
+  if(RULES.id==='international')return `<p>${THEME.rulesIntro}</p>
+<h4>Leo DLC — International Draughts</h4>
+<h4>The board</h4><ul><li>A 10x10 board with <b>20 pieces</b> a side, on the dark squares. Squares are labelled a–j and 1–10.</li></ul>
+<h4>Moving & capturing</h4><ul><li>The same rules as Russian Draughts: men step one square diagonally, <b>forward or backward</b>, and capture backward as well as forward.</li><li><b>Kings fly</b> along diagonals, moving and capturing from any distance. A king may land on any empty square beyond its victim, but if one of them lets it keep capturing, it must choose one of those.</li><li><b>Capturing is mandatory</b> and you may choose which capture to make. A piece can’t be jumped twice in one move, and captured pieces leave the board when the move ends.</li><li>A man reaching the far row is crowned. Crowned mid-capture, it keeps capturing as a king in the same move.</li></ul>
+<h4>Winning</h4><ul><li>Capture every enemy piece, or leave your opponent with no legal move.</li><li>Eighty moves with no capture or promotion is a stalemate — and it counts as a loss.</li></ul>
+<h4>The moon</h4><p>${THEME.moonRule}</p>`;
+  if(RULES.id==='hexdame')return `<p>${THEME.rulesIntro}</p>
+<h4>Taurus DLC — Hexdame</h4>
+<h4>The board</h4><ul><li>A hexagonal board of 61 cells, five to a side. Each side begins with <b>16 pieces</b> in a 4x4 rhombus. Cells are labelled by a letter (a–i) and a number (1–9); a1 is your bottom tip.</li></ul>
+<h4>Moving & capturing</h4><ul><li>The International rules, on a hex grid: every cell has <b>six neighbours</b>. Men step one cell in any of the six directions.</li><li>Men capture by jumping an adjacent enemy to the empty cell directly beyond, in any direction. <b>Kings fly</b> along all six lines, moving and capturing from any distance.</li><li><b>Capturing is mandatory</b>; a jump must be continued while another is available, and you may choose which capture to make. A king must choose a landing cell that lets it keep capturing, if one exists.</li><li>A man reaching either of the two far edges is crowned (mid-capture, it keeps capturing as a king).</li></ul>
+<h4>Winning</h4><ul><li>Capture every enemy piece, or leave your opponent with no legal move.</li><li>Eighty moves with no capture or promotion is a stalemate — and it counts as a loss.</li></ul>
+<h4>The moon</h4><p>${THEME.moonRule}</p>`;
+  if(RULES.id==='alquerque')return `<p>${THEME.rulesIntro}</p>
+<h4>Scorpio DLC — Alquerque</h4>
+<h4>The board</h4><ul><li>25 points on a 5x5 board, labelled <b>a–e</b> across and <b>1–5</b> up from your side. Pieces sit on the points and travel along the drawn lines — rows, columns and the diagonals.</li><li>Each side has 12 pieces. The centre point <b>c3</b> starts empty.</li><li>The margins carry Aristotle’s diagram of the elements: <b>Fire, Earth, Water, Air</b> at the edge midpoints (the diamond), and the qualities <b>hot, dry, cold, wet</b> at the corners of the square.</li></ul>
+<h4>Moving</h4><ul><li>Step one point along a line to an empty point: <b>forward or sideways, never backward</b>.</li><li><b>Promotion:</b> a piece that reaches the far row is promoted to a king. A promoted piece still moves one point at a time, but <b>may step backward</b> as well. (This counts toward the Promotion achievement.)</li></ul>
+<h4>Capturing</h4><ul><li>Jump over an adjacent enemy piece along a line onto the empty point directly beyond it. You may jump in any direction.</li><li><b>Capturing is mandatory</b>, and a jump must be continued while another jump is available. You choose which capture to make.</li></ul>
+<h4>Winning</h4><ul><li>Capture every enemy piece, or leave your opponent with no legal move.</li><li>Eighty moves with no capture or promotion is a stalemate — and it counts as a loss.</li></ul>
+<h4>The moon</h4><p>${THEME.moonRule}</p>`;
+  if(RULES.id==='russian')return `<p>${THEME.rulesIntro}</p>
+<h4>Aquarius DLC — Russian Draughts</h4>
+<h4>Moving</h4><ul><li>A man moves one dark square diagonally, <b>forward or backward</b>. <b>Kings fly:</b> they slide any distance along a diagonal.</li></ul>
+<h4>Capturing</h4><ul><li><b>Capturing is mandatory</b>, but you may choose any capture you like — there is no “take the most” rule.</li><li><b>Men capture backward as well as forward.</b></li><li>A king jumps one enemy at any distance and may land on any empty square beyond it. If a landing square lets it keep capturing, it must pick one of those.</li><li>A jumped piece can’t be jumped twice in the same move; captured pieces come off the board when the move ends.</li></ul>
+<h4>Kings</h4><ul><li>A man reaching the far row is crowned. <b>If this happens mid-capture, it continues capturing as a king in the same move.</b></li></ul>
+<h4>Winning</h4><ul><li>Capture every enemy piece, or leave your opponent with no legal move.</li><li>Eighty moves with no capture or promotion is a stalemate — and it counts as a loss.</li></ul>
+<h4>The moon</h4><p>${THEME.moonRule}</p>`;
+  return `<p>${THEME.rulesIntro}</p>
+<h4>Moving</h4><ul><li>A man moves one dark square diagonally forward onto an empty square.</li><li>A man never moves backward.</li></ul>
+<h4>Capturing</h4><ul><li>Jump diagonally over an enemy piece into the empty square behind it, and remove it.</li><li><b>Capturing is mandatory.</b> If you can jump, you must.</li><li>If the same piece can jump again, it must keep going.</li></ul>
+<h4>Kings</h4><ul><li>A man reaching the far row is crowned and stacks a second disc.</li><li>Kings move and capture one square at a time, forward or backward.</li><li>A man crowned during a capture ends its turn there.</li></ul>
+<h4>Winning</h4><ul><li>Capture every enemy piece, or leave your opponent with no legal move.</li><li>Forty moves with no capture or promotion is a stalemate — and it counts as a loss.</li></ul>
+<h4>The moon</h4><p>${THEME.moonRule}</p>`;
+}
+function getMythHtml(){ return THEME.myth; }
+const showRules=()=>dialog({title:'How to Play',icon:'',ic:'?',html:getRulesHtml()});
+const showMyth=()=>dialog({title:'The Myth of the Five Days',icon:'gold',ic:'☾',html:getMythHtml()});
+
+function closeMenus(){layerEl.querySelectorAll('.dd').forEach(d=>d.remove());document.querySelectorAll('.mi.open').forEach(m=>m.classList.remove('open'));$('#sm').classList.remove('on');}
+const MENUS={
+  game:()=>[
+    ['New Game',()=>newGameConfirm()],
+    ['-'],
+    ['Board Colors',()=>showBoardThemeDialog()],
+    ['Change Theme',()=>changeThemeConfirm()],
+    [`Piece Movement: ${pieceMotion==='sliding'?'Sliding':'Snappy'}`,()=>setPieceMotion(pieceMotion==='sliding'?'snappy':'sliding')],
+    ['Sound',()=>setSound(!soundOn),soundOn?'chk':''],
+    ['-'],
+    ['Exit',()=>askExit()]
+  ],
+  help:()=>[['How to Play',showRules],['Support & About',()=>showTab('support')],['The Myth of the Five Days',showMyth],['-'],['About',()=>dialog({title:'About',icon:'gold',ic:'☥',html:`<p><b>Lunar Myth Draughts</b></p><p>${THEME.aboutBlurb}</p>`})]]
+};
+function openMenu(name,anchor){
+  closeMenus();anchor.classList.add('open');
+  const dd=document.createElement('div');dd.className='dd';
+  MENUS[name]().filter(Boolean).forEach(entry=>{
+    const[t,fn,cls]=entry;
+    if(t==='-'){dd.appendChild(document.createElement('hr'));return;}
+    if(typeof fn!=='function'){console.warn('Menu entry missing handler:',t);return;}
+    const d=document.createElement('div');d.textContent=t;if(cls)d.className=cls;
+    d.onclick=e=>{e.stopPropagation();closeMenus();SFX.click();fn();};dd.appendChild(d);
+  });
+  const r=anchor.getBoundingClientRect();dd.style.left=Math.min(r.left,innerWidth-200)+'px';dd.style.top=r.bottom+'px';
+  layerEl.appendChild(dd);
+}
+document.querySelectorAll('.mi').forEach(m=>m.addEventListener('click',e=>{e.stopPropagation();m.classList.contains('open')?closeMenus():openMenu(m.dataset.menu,m);}));
+document.addEventListener('click',e=>{if(!e.target.closest('.startmenu,#startBtn'))closeMenus();});
+function setLevel(i){if(!S.difficultySelected)S.level=i;$('#lvl').textContent='Level: '+THEME.difficultyNames[i]+(RULES.id==='american'?'':' · '+RULES.name);}
+function setRuleset(id){
+  RULES=RULESETS[id]||RULESETS.american;
+  N=RULES.n||8;CELLS=N*N;
+  if(typeof board!=='undefined')rebuildBoardDom();
+  // reload this ruleset's own progress
+  achievements.range=achievements.promotion=achievements.winner=achievements.thriceGreat=false;
+  beatenDifficulties.clear();loadAchievements();
+  won=storage.getNumber(mkey(STORAGE_KEYS.RUN_WINS),0);
+  bestRunWins=storage.getNumber(mkey(STORAGE_KEYS.BEST_RUN_WINS),0);
+  const b=$('#dlcModesBtn');if(b)b.textContent=RULES.id==='american'?'𓂀 DLC MODES':'𓂀 DLC: '+RULES.name.toUpperCase();
+  if($('#lvl'))setLevel(S.level);
+  updateAchievementsDisplay();
+}
+async function askExit(){
+  const v=await dialog({title:'Leave the Duat?',icon:'q',ic:'?',html:`<p>Are you sure you want to leave the game? ${THEME.opponentName} will keep waiting.</p>`,buttons:[['Yes',1],['No',0,true]]});
+  if(v)minimize(true);
+}
+function minimize(on){
+  const w=$('#win');const m=on===undefined?!w.classList.contains('min'):on;
+  w.classList.toggle('min',m);$('#taskBtn').classList.toggle('active',!m);
+  if(!m)setTimeout(layout,0);
+}
+function bindWindowChrome(){
+  $('#bMin').onclick=()=>{SFX.click();minimize(true)};
+  $('#bClose').onclick=()=>{SFX.click();askExit()};
+  $('#taskBtn').onclick=()=>{SFX.click();minimize()};
+  $('#bNew').onclick=()=>newGameConfirm();
+  $('#bRules').onclick=showRules;
+  $('#traySnd').onclick=()=>{SFX.click();setSound(!soundOn)};
+  $('#startBtn').onclick=e=>{e.stopPropagation();SFX.click();const sm=$('#sm');const on=!sm.classList.contains('on');closeMenus();sm.classList.toggle('on',on)};
+  $('#sm').addEventListener('click',e=>{
+    const a=e.target.closest('[data-a]');if(!a)return;e.stopPropagation();closeMenus();
+    ({support:()=>{minimize(false);showTab('support')},new:()=>{minimize(false);newGameConfirm()},rules:showRules,myth:showMyth,snd:()=>setSound(!soundOn),off:async()=>{
+      const v=await dialog({title:'Shut Down',icon:'q',ic:'?',html:'<p>Are you sure you want to shut down? The moon will keep waning without you.</p>',buttons:[['Shut Down',1],['Cancel',0,true]]});
+      if(v){$('#off').classList.add('on');}
+    }})[a.dataset.a]();
+  });
+  $('#off').onclick=()=>{$('#off').classList.remove('on');newGameConfirm()};
+  document.addEventListener('keydown',e=>{if(e.key==='F2'){e.preventDefault();newGameConfirm();}if(e.key==='Escape')closeMenus();});
+}
+
+function tick(){const d=new Date();let h=d.getHours(),m=d.getMinutes();const ap=h<12?'AM':'PM';h=h%12||12;$('#clock').textContent=h+':'+String(m).padStart(2,'0')+' '+ap;}
+function startClock(){tick();setInterval(tick,20000);}
+
+/* ---------- support tab ---------- */
+const SUPPORT={
+  name:'Uthman Ken',alias:'Mufti Khrollo',
+  about:[
+    'Uthman Ken, known magically as "Mufti Khrollo," is an independent author, occultist, and digital creator exploring the intersection of Islamic esotericism and Western Hermetic magic. His work focuses on digitizing medieval Islamic and Hermetic knowledge—talismanic squares, angelic correspondences, gematria systems, and divination frameworks—transforming manuscript-locked material into interactive digital instruments.',
+    'This game is a small tribute to that world. Thoth, the Egyptian scribe of the gods, is the root of the Hermetic current, and here he wagers with the moon for the days that free Nut to give birth. It reflects the broader project: making ancient esoteric knowledge accessible, interactive, and alive for contemporary practitioners.'
+  ],
+  // Add more entries here. Entries without a url are not shown.
+  links:[
+    {k:'yt',ic:'▶',label:'YouTube',handle:'@TBOG786',url:'https://www.youtube.com/@TBOG786',desc:'Videos on Islamic occultism and Hermetics'},
+    {k:'ss',ic:'✎',label:'Substack',handle:'mufti963khrollo',url:'https://mufti963khrollo.substack.com',desc:'Essays and deep dives on esoteric practice'},
+    {k:'tiktok',ic:'♪',label:'TikTok',handle:'@thegnosticmuslim',url:'https://www.tiktok.com/@thegnosticmuslim',desc:'Short-form occult and spiritual content'},
+    {k:'ig',ic:'◉',label:'Instagram',handle:'khrollo963',url:'https://www.instagram.com/khrollo963',desc:'Visual esoteric content and updates'},
+    {k:'gh',ic:'◆',label:'GitHub',handle:'khrollo963',url:'https://github.com/khrollo963',desc:'Open source esoteric tools and projects'},
+    {k:'az',ic:'a',label:'Amazon',handle:'Uthman Ken',url:'https://www.amazon.com/s?k=Uthman+Ken',desc:'Published books on Islamic esotericism'},
+    {k:'pp',ic:'◀',label:'Support via PayPal',handle:'@everythingken',url:'https://www.paypal.com/donate/?hosted_button_id=everythingken',desc:'Help sustain the work'}
+  ]
+};
+
+function updateStorageWarning(){
+  const w=$('#storageWarning');
+  if(w)w.hidden=storage.available;
+}
+
+/* ---------- content/mysteries: The Mysteries of the Sphinx (Phase 3a) ----------
+   Four riddles, unlocked by winning rounds 2-5 of a Duat Run on any difficulty,
+   answered letter by letter on a 26-key keyboard. Wrong letters grey out; tries
+   are unlimited. Solving all four earns the Primordial "Wisest" achievement.
+   Rewards (DLC modes) are listed but not playable until Phases 3b-3d. */
+const MYSTERIES=Object.freeze([
+  {id:'toKnow',title:'To Know',unlockRound:2,answer:'HAPI',ask:'What Egyptian Legend am I?',
+   lines:['I carry no cup, yet waters flow from me.','I have no mouth, yet kingdoms drink from me.','Beneath the Saturnian sign, I rise and fall,','Bringing life where the dry earth calls.'],
+   reward:'Aquarius DLC — Russian Draughts',
+   hint:'Think of the river that feeds the Black Land each year.',
+   done:'Hapi, the Nile’s flood, giver of green. You have named me true. The first Mystery is unsealed.'},
+  {id:'toDare',title:'To Dare',unlockRound:3,answer:'HERACLES',ask:'What Greek Legend am I?',
+   lines:['I am the one who dons the lion,','The working of all the twelve.','I bear the strength of mortal men,','Yet strive among the gods themselves.'],
+   reward:'Leo DLC — International Draughts',
+   hint:'Twelve labours. A lion’s skin. Strength born of Zeus.',
+   done:'Heracles, who wore the lion and bore the twelve. Well dared, mortal. The second Mystery is unsealed.'},
+  {id:'toWill',title:'To Will',unlockRound:4,answer:'HATHOR',ask:'What Egyptian Legend am I?',
+   lines:['I am the Lady of the Sky,','Who wears fertility and holds the sun.','Where love and music meet as one.','Where the Crowned child must become','How Ra is expressed in the woman.'],
+   reward:'Taurus DLC — Hexdame',
+   hint:'Cow-horned, with the sun between them. Goddess of love and music.',
+   done:'Hathor, Lady of the Sky, in whom Ra is woman. You have willed it so. The third Mystery is unsealed.'},
+  {id:'toKeepSilent',title:'To Keep Silent',unlockRound:5,answer:'ORION',ask:'What Greek Legend am I?',
+   lines:['I am the victim of the one who stings','The one Zeus punished for what I bring','The famous figure that the wise men cope','The sole pursuer of the sisters of Merope.'],
+   reward:'Scorpio DLC — Alquerque',
+   hint:'A hunter. A scorpion’s sting. Seven sisters he pursues across the sky.',
+   done:'Orion, felled by the sting and set among the stars. You have kept silent, and spoken true. The last Mystery is unsealed.'}
+]);
+const KB_ROWS=['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];
+// progress[i] = letters locked in so far (entered strictly left to right); misses[i] = wrong letters tried for the CURRENT blank
+// Stakes: 3 wrong letters in a row (any right letter resets the streak) silences the Sphinx for 4:20.
+// The cooldown is stored as an end timestamp, so reloading or closing the tab doesn't skip it.
+const MYS_STRIKES=3,MYS_COOLDOWN_MS=(4*60+20)*1000;
+let mys={unlocked:0,solved:[false,false,false,false],progress:[0,0,0,0],misses:[[],[],[],[]],strikes:0,coolUntil:0,active:0};
+const mysCooling=()=>mys.coolUntil>Date.now();
+const mysFmt=ms=>{const t=Math.max(0,Math.ceil(ms/1000));return Math.floor(t/60)+':'+String(t%60).padStart(2,'0');};
+function saveMysteries(){storage.set(STORAGE_KEYS.MYSTERIES,JSON.stringify({unlocked:mys.unlocked,solved:mys.solved,progress:mys.progress,misses:mys.misses,strikes:mys.strikes,coolUntil:mys.coolUntil}));}
+function loadMysteries(){
+  try{
+    const raw=storage.get(STORAGE_KEYS.MYSTERIES,null);
+    if(raw){
+      const d=JSON.parse(raw);
+      if(Number.isInteger(d.unlocked))mys.unlocked=Math.max(0,Math.min(4,d.unlocked));
+      if(Array.isArray(d.solved))mys.solved=MYSTERIES.map((_,i)=>d.solved[i]===true);
+      if(Number.isInteger(d.strikes))mys.strikes=Math.max(0,Math.min(MYS_STRIKES-1,d.strikes));
+      if(Number.isFinite(d.coolUntil)&&d.coolUntil>Date.now()&&d.coolUntil<=Date.now()+MYS_COOLDOWN_MS)mys.coolUntil=d.coolUntil;
+      const clean=a=>Array.isArray(a)?[...new Set(a.filter(c=>typeof c==='string'&&/^[A-Z]$/.test(c)))]:[];
+      if(Array.isArray(d.progress)){
+        mys.progress=MYSTERIES.map((m,i)=>Number.isInteger(d.progress[i])?Math.max(0,Math.min(m.answer.length,d.progress[i])):0);
+        if(Array.isArray(d.misses))mys.misses=MYSTERIES.map((m,i)=>clean(d.misses[i]).filter(c=>c!==m.answer[mys.progress[i]]));
+      }else if(Array.isArray(d.guesses)){
+        // older save (free-order letters): keep the longest correct prefix
+        mys.progress=MYSTERIES.map((m,i)=>{const g=clean(d.guesses[i]);let n=0;while(n<m.answer.length&&g.includes(m.answer[n]))n++;return n;});
+      }
+    }
+  }catch(e){}
+  // Players who already reached round N before this update get those mysteries too.
+  const reached=achievements.winner?5:bestRunWins;
+  mys.unlocked=Math.max(mys.unlocked,Math.max(0,Math.min(4,reached-1)));
+  mys.solved.forEach((v,i)=>{if(v&&i>=mys.unlocked)mys.unlocked=i+1;if(v)mys.progress[i]=MYSTERIES[i].answer.length;});
+  mys.solved=mys.solved.map((v,i)=>v||mys.progress[i]>=MYSTERIES[i].answer.length);
+  const firstOpen=mys.solved.findIndex((v,i)=>!v&&i<mys.unlocked);
+  mys.active=firstOpen>=0?firstOpen:0;
+}
+function pulseTab(name){
+  const tab=document.querySelector('.tab[data-tab="'+name+'"]');
+  if(!tab||tab.classList.contains('on'))return;
+  tab.classList.remove('ach-pulse');void tab.offsetWidth;tab.classList.add('ach-pulse');
+  setTimeout(()=>tab.classList.remove('ach-pulse'),3000);
+}
+function unlockMysteriesForRound(roundsWon){
+  const n=Math.max(0,Math.min(4,roundsWon-1)); // round 2 -> 1 mystery open, round 5 -> all 4
+  if(n<=mys.unlocked)return;
+  const first=mys.unlocked;
+  mys.unlocked=n;saveMysteries();
+  mys.active=first; // jump the Mysteries tab to the newest riddle
+  setTimeout(()=>{
+    SFX.achieve();
+    showAchievementNotif('Mystery Unlocked',`“${MYSTERIES[n-1].title}” — the Sphinx awaits.`);
+    pulseTab('mysteries');
+  },1800);
+  if(!$('#mysteriesPanel').hidden)renderMysteries();
+}
+
+/* ---------- The Sphinx sprite + speech ---------- */
+function drawSphinx(c,blink){
+  const T=tools(c),R=T.R,W=c.width;
+  const M=(x,y,w,h,col)=>{R(x,y,w,h,col);R(W-x-w,y,w,h,col);};
+  const G='#e3a93a',GL='#f6d77a',GD='#b07a22',GX='#7d5216',BL='#1f4fa8',BLL='#4a80e0',CR='#f3ecd6',CRD='#cfc4a3',
+        SK='#d99a52',SKL='#ecb872',SKD='#a8672b',RD='#d6342a',K='#12091f';
+  // wings: stepped feathers sweeping up and out
+  for(let y=6;y<=36;y+=2){
+    const xl=y<16?3+Math.round((16-y)*-0.0):3+Math.round((y-16)*0.45), xr=y<16?5+(y-6):17;
+    M(xl,y,xr-xl+1,2,(y/2)%3===0?GD:G);
+  }
+  for(let y=18;y<=34;y+=4)M(4+Math.round((y-16)*0.4),y,10,1,GX);
+  M(3,6,3,2,GX);M(3,8,2,2,GD);
+  // lion body + haunches
+  R(13,38,38,14,G);R(13,48,38,4,GD);M(9,42,6,10,GD);M(11,40,4,2,G);
+  R(20,40,24,2,GL);R(22,44,20,1,GD);R(24,46,16,1,GD);
+  // front paws
+  M(17,50,12,8,G);M(17,50,12,2,GL);
+  [20,23,26].forEach(x=>M(x,54,1,4,GX));
+  M(17,57,12,1,GD);
+  // nemes headdress: crown + lappets with stripes
+  R(20,3,24,12,BL);R(22,1,20,2,BL);
+  for(let y=3;y<15;y+=3)R(20,y,24,1,CR);
+  M(16,10,8,30,BL);
+  for(let y=11;y<40;y+=3)M(16,y,8,1,CR);
+  M(16,10,1,30,CRD);
+  // face
+  R(24,10,16,21,SK);R(24,10,3,21,SKL);R(38,10,2,21,SKD);R(24,10,16,2,SKD);
+  // brows + kohl eyes
+  R(26,15,5,1,K);R(33,15,5,1,K);
+  if(blink){R(26,18,5,1,K);R(33,18,5,1,K);}
+  else{R(26,17,5,3,CR);R(33,17,5,3,CR);R(27,17,3,3,K);R(34,17,3,3,K);R(28,17,1,1,'#fff');R(35,17,1,1,'#fff');R(25,18,1,1,K);R(31,18,1,1,K);R(32,18,1,1,K);R(38,18,1,1,K);}
+  // nose, lips
+  R(31,20,2,6,SKD);R(30,25,4,1,SKD);R(29,28,6,1,SKD);R(29,29,6,1,'#b3562e');
+  // neck fills the gap between the lappets, then beard + collar
+  R(24,31,16,6,SKD);R(24,31,16,1,SK);
+  R(30,31,4,7,BL);R(30,33,4,1,GD);R(30,36,4,1,GD);
+  R(21,36,22,3,G);R(22,39,20,2,GD);
+  for(let i=0;i<6;i++)R(23+i*3,37,1,1,i%2?BLL:RD);
+  // uraeus
+  R(31,5,2,6,G);R(31,3,2,2,RD);R(31,11,2,1,GD);
+  outline(c);
+}
+const SPH_HIT=['Yes… the sands stir.','A true letter. Go on.','You see clearly, mortal.','So it is written.','Mm. Closer.'];
+const SPH_MISS=['No. Not that one.','The stones are silent to that.','Wrong, mortal. Try again.','The Sphinx does not stir.','Nay. Look deeper.','I have all the time of the ages.'];
+let sph={base:'',typeT:null,reactT:null,blinkT:null,seen:{},key:'',typing:false,full:'',n:0};
+const sphReduced=()=>window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches;
+function sphPaint(typed){
+  const t=$('#sphTxt');if(!t)return;
+  const f=s=>esc(s).replace(/\n/g,'<br>');
+  t.innerHTML=f(sph.full.slice(0,typed))+'<span class="gh">'+f(sph.full.slice(typed))+'</span>';
+}
+function sphStopType(){clearInterval(sph.typeT);sph.typeT=null;sph.typing=false;const w=$('#sphWrap');if(w)w.classList.remove('talk');}
+function sphSay(text,type){
+  sphStopType();sph.full=text;sph.n=0;
+  const bub=$('#sphBub');if(bub)bub.classList.remove('react');
+  if(!type||sphReduced()){sphPaint(text.length);return;}
+  sph.typing=true;const w=$('#sphWrap');if(w)w.classList.add('talk');
+  sphPaint(0);
+  sph.typeT=setInterval(()=>{
+    sph.n++;sphPaint(sph.n);
+    if(sph.n%3===0&&/\S/.test(text[sph.n-1]||''))beep(210+(sph.n%5)*18,.03,'triangle',.02);
+    if(sph.n>=text.length)sphStopType();
+  },26);
+}
+function sphReact(text){
+  clearTimeout(sph.reactT);sphStopType();
+  sph.full=text;sphPaint(text.length);
+  const bub=$('#sphBub');if(bub)bub.classList.add('react');
+  sph.reactT=setTimeout(()=>{if(bub)bub.classList.remove('react');sph.full=sph.base;sphPaint(sph.base.length);},2800);
+}
+function sphBaseText(i){
+  const m=MYSTERIES[i];
+  if(i>=mys.unlocked)return `This Mystery is sealed to you.\nWin round ${m.unlockRound} of the Duat Run, and I shall speak it.`;
+  if(mys.solved[i])return m.done;
+  if(mysCooling())return 'Three falsehoods in a row.\nThe Sphinx falls silent.\n\nReturn when the sands have settled.';
+  return m.lines.join('\n');
+}
+function sphIntro(){
+  clearTimeout(sph.reactT);
+  const i=mys.active;
+  sph.base=sphBaseText(i);
+  const k=i+':'+(i<mys.unlocked?1:0)+(mys.solved[i]?1:0);
+  const first=!sph.seen[k];sph.seen[k]=true;
+  sphSay(sph.base,first);
+}
+function sphBlinkLoop(){
+  clearInterval(sph.blinkT);
+  const c=$('#sphCv');if(!c)return;
+  sph.blinkT=setInterval(()=>{
+    const p=$('#mysteriesPanel');if(!p||p.hidden)return;
+    drawSphinx(c,true);setTimeout(()=>drawSphinx(c,false),150);
+  },3400);
+}
+
+function mysGuess(letter){
+  const i=mys.active;
+  if(i>=mys.unlocked||mys.solved[i]||mysCooling())return;
+  letter=String(letter).toUpperCase();
+  const m=MYSTERIES[i],pos=mys.progress[i],miss=mys.misses[i];
+  if(!/^[A-Z]$/.test(letter)||miss.includes(letter))return;
+  const rnd=a=>a[Math.floor(Math.random()*a.length)];
+  if(letter===m.answer[pos]){
+    // right letter for THIS blank: lock it in and move to the next blank
+    mys.progress[i]=pos+1;mys.misses[i]=[];mys.strikes=0; // a right letter ends the streak
+    beep(880,.06);
+    if(mys.progress[i]>=m.answer.length){
+      mys.solved[i]=true;
+      SFX.achieve();
+      showAchievementNotif('Mystery Solved',`“${m.title}” — ${m.answer[0]+m.answer.slice(1).toLowerCase()}.`);
+      if(mys.solved.every(Boolean))unlockAchievement('wisest','Wisest','Unlocked all 4 Mysteries of the Sphinx');
+      else updateAchievementsDisplay();
+      sph.base=m.done;sph.seen[i+':11']=true;
+      setTimeout(()=>sphSay(mys.solved.every(Boolean)?m.done+'\n\nAll four are answered. You are the Wisest.':m.done,true),0);
+    }else setTimeout(()=>sphReact(rnd(SPH_HIT)),0);
+  }else{
+    // wrong for this blank: grey it out; the blank stays open
+    miss.push(letter);beep(150,.08,'square',.05);
+    mys.strikes++;
+    if(mys.strikes>=MYS_STRIKES){
+      mys.strikes=0;mys.coolUntil=Date.now()+MYS_COOLDOWN_MS;
+      beep(110,.25,'sawtooth',.06);
+      saveMysteries();
+      setTimeout(()=>{sph.base=sphBaseText(i);sphSay(sph.base,true);},0);
+    }else setTimeout(()=>sphReact(miss.length%5===0?m.hint:rnd(SPH_MISS)),0);
+  }
+  saveMysteries();renderMysteries();
+}
+function mysReset(){
+  const i=mys.active;
+  if(i>=mys.unlocked||mys.solved[i])return;
+  mys.progress[i]=0;mys.misses[i]=[];saveMysteries();renderMysteries();
+}
+function renderMysteries(opened){
+  const p=$('#mysteriesPanel');if(!p)return;
+  if(!p.querySelector('#mysCard')){
+    p.innerHTML=`<div class="mys-head" id="mysHead"></div>
+      <div class="mys-stage"><div class="mys-sph" id="sphWrap"><canvas id="sphCv" width="64" height="60" aria-hidden="true"></canvas><div class="mys-plate">THE SPHINX</div></div>
+      <div class="mys-bub" id="sphBub" role="status" aria-live="polite" title="Tap to skip"><div id="sphTxt"></div></div></div>
+      <div class="mys-sels" id="mysSels"></div><div class="mys-card" id="mysCard"></div>`;
+    drawSphinx($('#sphCv'),false);sphBlinkLoop();
+    $('#sphBub').addEventListener('click',()=>{if(sph.typing){sphStopType();sphPaint(sph.full.length);}});
+    sph.key='';
+  }
+  const solvedN=mys.solved.filter(Boolean).length,i=mys.active,m=MYSTERIES[i],open=i<mys.unlocked,done=mys.solved[i],pos=mys.progress[i],miss=mys.misses[i],cool=mysCooling();
+  $('#mysHead').innerHTML=`<b>MYSTERIES OF THE SPHINX</b><small>${solvedN}/4 solved · ${mys.unlocked}/4 unsealed</small>
+      <div class="ach-track" style="margin-top:6px"><div class="ach-fill" style="width:${solvedN/4*100}%"></div></div>`;
+  $('#mysSels').innerHTML=MYSTERIES.map((x,k)=>{
+    const st=mys.solved[k]?'solved':k<mys.unlocked?'open':'locked';
+    return `<button class="mys-sel ${st}${k===i?' on':''}" data-sel="${k}"><span>${st==='solved'?'✓':st==='locked'?'🔒':'☥'}</span><b>${esc(x.title)}</b><small>${st==='locked'?'Win round '+x.unlockRound:st==='solved'?'Solved':'Unsealed'}</small></button>`;
+  }).join('');
+  let body;
+  if(!open){
+    body=`<div class="mys-lock"><i>🔒</i>This mystery is sealed.<br>Win <b>round ${m.unlockRound}</b> of a Duat Run, on any difficulty, to unseal <b>${esc(m.title)}</b>.</div>`;
+  }else{
+    const blanks=[...m.answer].map((ch,k)=>`<span class="mys-blank${k<pos?' on':''}${k===pos&&!done?' cur':''}">${k<pos?ch:''}</span>`).join('');
+    const kb=KB_ROWS.map(r=>`<div class="mys-row">${[...r].map(L=>{
+      const used=miss.includes(L),cls=used?' miss':'';
+      return `<button class="mys-key${cls}" data-key="${L}" ${used||done||cool?'disabled':''} aria-label="${L}">${L}</button>`;
+    }).join('')}</div>`).join('');
+    body=`<div class="mys-title">THE ${['FIRST','SECOND','THIRD','FOURTH'][i]} MYSTERY — ${esc(m.title.toUpperCase())}</div>
+      <div class="mys-q">${esc(m.ask)} <span style="font-weight:normal;color:#6a6552">(${m.answer.length} letters)</span></div>
+      <div class="mys-blanks" aria-label="Answer, ${m.answer.length} letters">${blanks}</div>
+      ${done?`<div class="mys-win"><b>THE SPHINX IS SILENT</b>You have answered true: <b style="display:inline;font:inherit;color:inherit">${m.answer[0]+m.answer.slice(1).toLowerCase()}</b>.<br>Reward unsealed: ${esc(m.reward)}<br><span style="color:#6a6552">${(DLC_MODES.find(d=>d.mystery===i)||{}).ready?'Choose it under DLC Modes on the difficulty screen.':'Playable in an upcoming build.'}</span></div>`
+        :`${cool?`<div class="mys-cool"><b>THE SPHINX IS SILENT</b>Speak again in <span id="mysCoolTime">${mysFmt(mys.coolUntil-Date.now())}</span></div>`
+          :`<div class="mys-strikes" role="status" aria-label="${mys.strikes} of ${MYS_STRIKES} wrong letters in a row">Wrong in a row: ${[...Array(MYS_STRIKES)].map((_,k)=>`<span class="pip${k<mys.strikes?' on':''}"></span>`).join('')}</div>`}<div class="mys-kb">${kb}</div><div class="mys-note">Fill the blanks in order, one letter at a time. Wrong letters grey out for that blank. Three wrong in a row and the Sphinx falls silent for 4:20; a right letter resets the count.</div>${(pos||miss.length)?'<div class="mys-reset"><button class="xpbtn" data-act="reset">Start over</button></div>':''}`}`;
+  }
+  $('#mysCard').innerHTML=body;
+  // The Sphinx re-speaks only when the shown mystery (or its state) changes, or on tab open
+  const key=i+':'+(open?1:0)+(done?1:0)+(cool?1:0);
+  if(key!==sph.key||opened===true){sph.key=key;sphIntro();}
+}
+function mysTick(){
+  if(!mys.coolUntil)return;
+  const left=mys.coolUntil-Date.now(),el=$('#mysCoolTime');
+  if(left>0){if(el)el.textContent=mysFmt(left);return;}
+  mys.coolUntil=0;saveMysteries();
+  const p=$('#mysteriesPanel');
+  if(p&&!p.hidden){renderMysteries();sphReact('The Sphinx stirs. Speak, mortal.');}
+}
+function bindMysteries(){
+  const p=$('#mysteriesPanel');if(!p)return;
+  setInterval(mysTick,500);
+  p.addEventListener('click',e=>{
+    const sel=e.target.closest('[data-sel]'),key=e.target.closest('[data-key]'),act=e.target.closest('[data-act]');
+    if(sel){SFX.click();mys.active=+sel.dataset.sel;renderMysteries();}
+    else if(key&&!key.disabled)mysGuess(key.dataset.key);
+    else if(act&&act.dataset.act==='reset'){SFX.click();mysReset();}
+  });
+  document.addEventListener('keydown',e=>{
+    if(p.hidden||e.ctrlKey||e.metaKey||e.altKey||e.key.length!==1)return;
+    if(layerEl.querySelector('.modal'))return; // a dialog is open on top
+    if(/^[a-zA-Z]$/.test(e.key))mysGuess(e.key);
+  });
+}
+
+/* ---------- DLC Modes picker (Phase 3a shell; rules land in 3b-3d) ----------
+   Opened from the difficulty screen in both themes. An option opens once its
+   Sphinx mystery is SOLVED (mys.solved is theme-agnostic, so solving in Kemetic
+   unlocks it in Hellenic too). Selecting an open mode will start that ruleset. */
+const DLC_MODES=Object.freeze([
+  {id:'russian',sign:'Aquarius',glyph:'♒',name:'Russian Draughts',mystery:0,phase:'3b',ready:true},
+  {id:'international',sign:'Leo',glyph:'♌',name:'International Draughts',mystery:1,phase:'3d',ready:true},
+  {id:'hexdame',sign:'Taurus',glyph:'♉',name:'Hexdame',mystery:2,phase:'3d',ready:true},
+  {id:'alquerque',sign:'Scorpio',glyph:'♏',name:'Alquerque',mystery:3,phase:'3c',ready:true}
+]);
+function openDlcModes(){
+  const opts=DLC_MODES.map((d,k)=>{
+    const open=mys.solved[d.mystery];
+    return `<button class="dlc-opt ${open?'open':'locked'}" data-dlc="${k}"><span class="gl">${open?d.glyph:'🔒'}</span><span><b>${open?d.sign.toUpperCase()+' DLC':'GAME MODE ????'}</b>${open?d.name:''}<small>${open?'Unsealed':mys.unlocked>d.mystery?'Solve “'+MYSTERIES[d.mystery].title+'” in the Mysteries tab':'Win round '+MYSTERIES[d.mystery].unlockRound+' to reveal its mystery'}</small></span></button>`;
+  }).join('');
+  dialog({title:'DLC Modes',icon:'gold',ic:'𓂀',
+    html:`<div style="text-align:center;font-size:11px">Choose a mode unsealed by the Sphinx. Achievements are tracked separately in each mode.</div><div class="dlc-list">${opts}</div><div class="dlc-note" id="dlcNote"></div>`,
+    buttons:[['Standard Checkers',2],['Close',0,true]]}).then(v=>{
+      if(v===2){setRuleset('american');SFX.click();setStatus('Standard American Checkers.');renderMysteries();}
+    });
+  layerEl.querySelectorAll('.dlc-opt').forEach(b=>b.onclick=()=>{
+    const d=DLC_MODES[+b.dataset.dlc],note=layerEl.querySelector('#dlcNote');
+    SFX.click();
+    if(mys.solved[d.mystery]&&d.ready){
+      setRuleset(d.id);setStatus(`${d.sign} DLC: ${d.name}. Pick a difficulty.`);
+      layerEl.querySelector('.tbtn.x').click();
+      return;
+    }
+    note.textContent=mys.solved[d.mystery]
+      ?`${d.name} is unsealed — its rules arrive in an upcoming build.`
+      :`Sealed. ${mys.unlocked>d.mystery?'Solve':'Win round '+MYSTERIES[d.mystery].unlockRound+' to unseal, then solve'} “${MYSTERIES[d.mystery].title}” to reveal this game mode.`;
+  });
+}
+
+function updateAchievementsDisplay(){
+  const achPanelEl=$('#achievementsPanel');
+  if(achPanelEl){
+    let tag=achPanelEl.querySelector('#achMode');
+    if(!tag){tag=document.createElement('div');tag.id='achMode';tag.style.cssText='margin:0 0 8px;padding:5px 8px;text-align:center;font:9px/1.6 var(--px);color:#f2c230;background:#12163f;border:2px solid #7f9db9';achPanelEl.insertBefore(tag,achPanelEl.firstChild);}
+    tag.textContent='MODE: '+RULES.name.toUpperCase();
+  }
+  const ar=$('#ach-range'),ap=$('#ach-promotion'),aw=$('#ach-winner'),at=$('#ach-thriceGreat');
+  const arN=$('#ach-range-n'),apN=$('#ach-promotion-n'),awN=$('#ach-winner-n'),atN=$('#ach-thriceGreat-n');
+  // Range/Promotion have no partial state — they either happened this session or not.
+  if(ar)ar.style.width=achievements.range?'100%':'0%';
+  if(arN)arN.textContent=achievements.range?'Unlocked':'Not yet';
+  if(ap)ap.style.width=achievements.promotion?'100%':'0%';
+  if(apN)apN.textContent=achievements.promotion?'Unlocked':'Not yet';
+  // Winner/Thrice Great have real progress to show even before completion.
+  // Winner tracks the all-time BEST run reached (bestRunWins), not the current
+  // session's live count — it never regresses on a loss, and any difficulty counts.
+  const winPct=achievements.winner?100:Math.min(100,Math.round(bestRunWins/5*100));
+  if(aw)aw.style.width=winPct+'%';
+  if(awN)awN.textContent=achievements.winner?'Unlocked':`${Math.min(bestRunWins,5)}/5 wins (best run)`;
+  const tgPct=achievements.thriceGreat?100:Math.min(100,Math.round(beatenDifficulties.size/3*100));
+  const wN=$('#ach-wisest-n'),wB=$('#ach-wisest');
+  const solvedCount=mys.solved.filter(Boolean).length;
+  if(wB)wB.style.width=(achievements.wisest?100:Math.round(solvedCount/4*100))+'%';
+  if(wN)wN.textContent=achievements.wisest?'Unlocked':`${solvedCount}/4 mysteries unlocked`;
+  if(at)at.style.width=tgPct+'%';
+  if(atN)atN.textContent=achievements.thriceGreat?'Unlocked':`${beatenDifficulties.size}/3 difficulties beaten`;
+}
+
+function renderSupport(){
+  const p=$('#supportPanel');
+  p.innerHTML=`<div class="sp-head"><canvas id="spT" width="48" height="80"></canvas><div><b>${esc(SUPPORT.name)}</b><span>“${esc(SUPPORT.alias)}”</span></div></div>
+  <h4>About</h4>${SUPPORT.about.map(a=>`<p>${esc(a)}</p>`).join('')}
+  <h4>Find and support the work</h4>
+  <div class="sp-links">${SUPPORT.links.filter(l=>l.url).map(l=>`<a class="sp-link" href="${esc(l.url)}" target="_blank" rel="noopener noreferrer"><span class="sp-ic ${l.k}">${esc(l.ic)}</span><span><b>${esc(l.label)}</b><small>${esc(l.desc)}${l.handle?' · '+esc(l.handle):''}</small></span><span class="go">Open</span></a>`).join('')}</div>
+  <p class="sp-note">Watching, reading and sharing are the best ways to support. Links open in a new tab.</p>`;
+  const c=document.getElementById('spT');drawThoth(c);
+}
+
+function showTab(t){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  const gp=$('#gamePanel'),ap=$('#achievementsPanel'),sp=$('#supportPanel'),mp=$('#mysteriesPanel');
+  if(gp)gp.hidden=t!=='game';
+  if(ap)ap.hidden=t!=='achievements';
+  if(sp)sp.hidden=t!=='support';
+  if(mp)mp.hidden=t!=='mysteries';
+  if(t==='mysteries')renderMysteries(true);
+  if(t==='achievements')updateAchievementsDisplay();
+  setStatus(t==='support'?'Support & About':t==='mysteries'?'The Sphinx waits.':(S.over?'Game over.':S.turn===1?`Your move, ${THEME.playerName}.`:`${THEME.opponentName} is thinking…`));
+  setTimeout(layout,0);
+}
+function bindTitleAndTabs(){
+  document.querySelectorAll('.theme-pick-btn').forEach(btn=>{
+    btn.onclick=()=>{
+      SFX.click();
+      applyGameTheme(btn.dataset.theme);
+      $('#titleScreen').classList.add('hide');
+      showStartMenu();
+    };
+  });
+  document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{SFX.click();showTab(b.dataset.tab)});
+}
+
+/* ---------- main.js equivalent: one explicit startup path ----------
+   Title screen shows by default (see CSS); everything below only wires
+   handlers and restores saved state — it does not open any screen. */
+function init(){
+  bindWindowChrome();
+  bindTitleAndTabs();
+  startClock();
+  renderSupport();
+  storage.probe(); // must run before migrations/load so both reflect reality, not a guess
+  if(storage.available)runStorageMigrations(); // fix up any data an old bug corrupted, once
+  loadAchievements();
+  loadMysteries(); // after achievements + bestRunWins so past progress backfills
+  bindMysteries();
+  loadBoardTheme(); // no-op visually on first run (defaults match the CSS baseline); restores a saved pick otherwise
+  loadPieceMotion();
+  updateStorageWarning();
+  addEventListener('load',layout);
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(layout);
+}
+init();
+})();
+</script>
+</body>
+</html>
