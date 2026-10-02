@@ -1,6 +1,6 @@
 # LUNAR MYTH DRAUGHTS: PLAY HERE https://khrollo963.github.io/Moon-Checkers/
 # Support the Itch.io build https://kennyfromthering.itch.io/checkers
-# Play on NEWGROUNDS: 
+# Play The Vercel Website: https://checkers-wine.vercel.app/
 
 A roguelike checkers game told in two mythologies at once. Pick your pantheon at the title screen — **Kemetic** or **Hellenic** — and wager against the moon to win back the days lost to a jealous sun god's curse.
 
